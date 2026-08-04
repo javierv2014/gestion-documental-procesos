@@ -16,7 +16,7 @@
     --text:          #e9ecf1;
     --text-dim:      #8d96a6;
     --text-faint:    #5c6577;
-    --accent:        #c9a24a;      /* sello / auditoría */
+    --accent:        #c9a24a;
     --accent-dim:    #7a6636;
     --ok:            #45b787;
     --ok-bg:         rgba(69,183,135,.12);
@@ -32,41 +32,43 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:var(--font-ui);
-    -webkit-font-smoothing:antialiased;
-    min-height:100vh;
-  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font-ui);-webkit-font-smoothing:antialiased;min-height:100vh;}
   a{color:inherit;}
 
-  /* ---------- shell ---------- */
   .shell{max-width:1180px;margin:0 auto;padding:28px 24px 80px;}
 
-  header.top{
-    display:flex;align-items:flex-end;justify-content:space-between;
-    gap:16px;flex-wrap:wrap;
-    padding-bottom:20px;margin-bottom:22px;
-    border-bottom:1px solid var(--hairline);
-  }
+  /* LOGIN SCREEN */
+  .login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
+  .login-box{background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);padding:40px;max-width:380px;width:100%;}
+  .login-box .mark{width:48px;height:48px;border-radius:8px;background:linear-gradient(155deg,var(--accent),var(--accent-dim));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:600;font-size:16px;color:#1a1508;margin:0 auto 20px;}
+  .login-box h1{font-size:18px;margin:0 0 6px;text-align:center;font-weight:600;}
+  .login-box p{font-size:12.5px;color:var(--text-dim);text-align:center;margin:0 0 24px;}
+  .login-box .field{margin-bottom:14px;}
+  .login-box label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;font-weight:500;}
+  input[type=email], input[type=password]{width:100%;background:var(--panel-2);border:1px solid var(--hairline);color:var(--text);padding:10px 11px;border-radius:8px;font-family:var(--font-ui);font-size:13.5px;outline:none;transition:.15s;}
+  input:focus{border-color:var(--accent);}
+  .login-box button{width:100%;background:var(--accent);color:#1a1508;border:none;font-weight:600;font-size:13.5px;padding:11px 18px;border-radius:8px;cursor:pointer;transition:.15s;font-family:var(--font-ui);margin-top:6px;}
+  .login-box button:hover:not(:disabled){filter:brightness(1.08);}
+  .login-box button:disabled{opacity:.4;cursor:not-allowed;}
+  .login-msg{font-size:12px;color:var(--text-faint);margin-top:12px;text-align:center;}
+  .login-msg.err{color:var(--err);}
+  .login-msg.ok{color:var(--ok);}
+
+  /* MAIN LAYOUT */
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid var(--hairline);}
   .brand{display:flex;align-items:center;gap:12px;}
-  .brand .mark{
-    width:38px;height:38px;border-radius:8px;
-    background:linear-gradient(155deg,var(--accent),var(--accent-dim));
-    display:flex;align-items:center;justify-content:center;
-    font-family:var(--font-mono);font-weight:600;font-size:13px;color:#1a1508;
-    letter-spacing:-0.5px;
-  }
+  .brand .mark{width:38px;height:38px;border-radius:8px;background:linear-gradient(155deg,var(--accent),var(--accent-dim));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:600;font-size:13px;color:#1a1508;letter-spacing:-0.5px;}
   .brand h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.2px;}
   .brand p{margin:2px 0 0;font-size:12.5px;color:var(--text-dim);}
 
+  .header-right{display:flex;align-items:center;gap:12px;}
+  .user-badge{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--hairline);padding:8px 12px;border-radius:8px;font-size:12.5px;}
+  .user-badge .role{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.5px;}
+  button.logout{background:transparent;border:1px solid var(--hairline);color:var(--text-dim);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12.5px;font-family:var(--font-ui);transition:.15s;}
+  button.logout:hover{color:var(--text);border-color:var(--text-faint);}
+
   nav.tabs{display:flex;gap:4px;flex-wrap:wrap;}
-  nav.tabs button{
-    font-family:var(--font-ui);font-size:13px;font-weight:500;
-    background:transparent;border:1px solid transparent;color:var(--text-dim);
-    padding:8px 14px;border-radius:8px;cursor:pointer;transition:.15s;
-  }
+  nav.tabs button{font-family:var(--font-ui);font-size:13px;font-weight:500;background:transparent;border:1px solid transparent;color:var(--text-dim);padding:8px 14px;border-radius:8px;cursor:pointer;transition:.15s;}
   nav.tabs button:hover{color:var(--text);background:var(--panel);}
   nav.tabs button.active{color:var(--bg);background:var(--accent);font-weight:600;}
 
@@ -74,34 +76,15 @@
   section.active{display:block;animation:fade .25s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
 
-  .conn-banner{
-    display:none;
-    background:var(--warn-bg);border:1px solid rgba(224,169,52,.35);
-    color:var(--warn);padding:12px 16px;border-radius:var(--radius);
-    font-size:13px;margin-bottom:20px;line-height:1.5;
-  }
-  .conn-banner code{font-family:var(--font-mono);background:rgba(0,0,0,.25);padding:1px 5px;border-radius:4px;}
-
-  /* ---------- dashboard ---------- */
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
   @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
-  .kpi{
-    background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);
-    padding:18px 18px 16px;position:relative;overflow:hidden;
-  }
+  .kpi{background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);padding:18px 18px 16px;position:relative;overflow:hidden;}
   .kpi .num{font-family:var(--font-mono);font-size:30px;font-weight:600;line-height:1;}
   .kpi .lbl{font-size:12.5px;color:var(--text-dim);margin-top:8px;}
-  .kpi.tone-ok .num{color:var(--ok);}
-  .kpi.tone-warn .num{color:var(--warn);}
-  .kpi.tone-err .num{color:var(--err);}
-  .kpi.tone-idle .num{color:var(--text);}
+  .kpi.tone-ok .num{color:var(--ok);} .kpi.tone-warn .num{color:var(--warn);} .kpi.tone-err .num{color:var(--err);} .kpi.tone-idle .num{color:var(--text);}
 
-  .panel{
-    background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);
-    padding:20px;margin-bottom:18px;
-  }
-  .panel h2{font-size:14px;margin:0 0 14px;color:var(--text);font-weight:600;
-    display:flex;align-items:center;gap:8px;}
+  .panel{background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);padding:20px;margin-bottom:18px;}
+  .panel h2{font-size:14px;margin:0 0 14px;color:var(--text);font-weight:600;display:flex;align-items:center;gap:8px;}
   .panel h2 .tag{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);font-weight:500;}
 
   .bar-row{display:flex;align-items:center;gap:10px;font-size:12.5px;padding:6px 0;}
@@ -110,302 +93,344 @@
   .bar-row .fill{height:100%;background:var(--accent);border-radius:99px;}
   .bar-row .count{width:34px;text-align:right;font-family:var(--font-mono);color:var(--text-dim);}
 
-  /* ---------- generador ---------- */
   .gen-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;}
   @media(max-width:860px){.gen-grid{grid-template-columns:1fr;}}
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;font-weight:500;}
-  select, input[type=text], input[type=number], textarea{
-    width:100%;background:var(--panel-2);border:1px solid var(--hairline);color:var(--text);
-    padding:10px 11px;border-radius:8px;font-family:var(--font-ui);font-size:13.5px;
-    outline:none;transition:.15s;
-  }
+  select, input[type=text], input[type=number], textarea{width:100%;background:var(--panel-2);border:1px solid var(--hairline);color:var(--text);padding:10px 11px;border-radius:8px;font-family:var(--font-ui);font-size:13.5px;outline:none;transition:.15s;}
   select:focus, input:focus, textarea:focus{border-color:var(--accent);}
   select:disabled{opacity:.4;cursor:not-allowed;}
   textarea{resize:vertical;min-height:60px;}
 
-  .code-preview{
-    font-family:var(--font-mono);font-size:26px;font-weight:600;letter-spacing:.5px;
-    padding:22px;border-radius:var(--radius);text-align:center;
-    background:var(--panel-2);border:1px solid var(--hairline);
-    transition:background .2s,border-color .2s,color .2s;
-    margin-bottom:14px;word-break:break-all;
-  }
-  .code-preview.state-idle{color:var(--text-faint);}
-  .code-preview.state-ok{color:var(--ok);background:var(--ok-bg);border-color:rgba(69,183,135,.4);}
-  .code-preview.state-warn{color:var(--warn);background:var(--warn-bg);border-color:rgba(224,169,52,.4);}
-  .code-preview.state-err{color:var(--err);background:var(--err-bg);border-color:rgba(226,86,79,.4);}
+  .code-preview{font-family:var(--font-mono);font-size:26px;font-weight:600;letter-spacing:.5px;padding:22px;border-radius:var(--radius);text-align:center;background:var(--panel-2);border:1px solid var(--hairline);transition:background .2s,border-color .2s,color .2s;margin-bottom:14px;word-break:break-all;}
+  .code-preview.state-idle{color:var(--text-faint);} .code-preview.state-ok{color:var(--ok);background:var(--ok-bg);border-color:rgba(69,183,135,.4);} .code-preview.state-warn{color:var(--warn);background:var(--warn-bg);border-color:rgba(224,169,52,.4);} .code-preview.state-err{color:var(--err);background:var(--err-bg);border-color:rgba(226,86,79,.4);}
 
-  .status-line{
-    display:flex;align-items:center;gap:9px;font-size:12.5px;padding:11px 13px;
-    border-radius:8px;margin-bottom:16px;line-height:1.45;
-  }
-  .status-line.state-idle{background:var(--idle-bg);color:var(--text-dim);}
-  .status-line.state-ok{background:var(--ok-bg);color:var(--ok);}
-  .status-line.state-warn{background:var(--warn-bg);color:var(--warn);}
-  .status-line.state-err{background:var(--err-bg);color:var(--err);}
+  .status-line{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:11px 13px;border-radius:8px;margin-bottom:16px;line-height:1.45;}
+  .status-line.state-idle{background:var(--idle-bg);color:var(--text-dim);} .status-line.state-ok{background:var(--ok-bg);color:var(--ok);} .status-line.state-warn{background:var(--warn-bg);color:var(--warn);} .status-line.state-err{background:var(--err-bg);color:var(--err);}
   .status-line .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}
 
-  button.primary{
-    background:var(--accent);color:#1a1508;border:none;font-weight:600;font-size:13.5px;
-    padding:11px 18px;border-radius:8px;cursor:pointer;transition:.15s;font-family:var(--font-ui);
-  }
-  button.primary:hover:not(:disabled){filter:brightness(1.08);}
-  button.primary:disabled{opacity:.4;cursor:not-allowed;}
-  button.ghost{
-    background:transparent;border:1px solid var(--hairline);color:var(--text-dim);
-    padding:7px 12px;border-radius:7px;font-size:12.5px;cursor:pointer;font-family:var(--font-ui);
-  }
+  button.primary{background:var(--accent);color:#1a1508;border:none;font-weight:600;font-size:13.5px;padding:11px 18px;border-radius:8px;cursor:pointer;transition:.15s;font-family:var(--font-ui);}
+  button.primary:hover:not(:disabled){filter:brightness(1.08);} button.primary:disabled{opacity:.4;cursor:not-allowed;}
+  button.ghost{background:transparent;border:1px solid var(--hairline);color:var(--text-dim);padding:7px 12px;border-radius:7px;font-size:12.5px;cursor:pointer;font-family:var(--font-ui);}
   button.ghost:hover{color:var(--text);border-color:var(--text-faint);}
+  button.danger{background:var(--err-bg);border:1px solid rgba(226,86,79,.4);color:var(--err);padding:7px 12px;border-radius:7px;font-size:12.5px;cursor:pointer;font-family:var(--font-ui);}
+  button.danger:hover{background:rgba(226,86,79,.25);}
 
   .help{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin-top:14px;}
   .help ol{margin:6px 0 0;padding-left:18px;}
 
-  /* ---------- tabla documentos ---------- */
   .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
   .filters input, .filters select{width:auto;min-width:150px;}
   .filters input[type=text]{flex:1;min-width:200px;}
 
   table{width:100%;border-collapse:collapse;font-size:12.8px;}
-  thead th{
-    text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;
-    color:var(--text-faint);border-bottom:1px solid var(--hairline);padding:9px 10px;font-weight:600;
-  }
+  thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-faint);border-bottom:1px solid var(--hairline);padding:9px 10px;font-weight:600;}
   tbody td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;}
   tbody tr:hover{background:rgba(255,255,255,.02);}
   .code-cell{font-family:var(--font-mono);font-size:12px;white-space:nowrap;}
-  .pill{
-    display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;
-    white-space:nowrap;
-  }
-  .pill.ok{background:var(--ok-bg);color:var(--ok);}
-  .pill.warn{background:var(--warn-bg);color:var(--warn);}
-  .pill.err{background:var(--err-bg);color:var(--err);}
-  .pill.idle{background:var(--idle-bg);color:var(--text-dim);}
+  .pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .pill.ok{background:var(--ok-bg);color:var(--ok);} .pill.warn{background:var(--warn-bg);color:var(--warn);} .pill.err{background:var(--err-bg);color:var(--err);} .pill.idle{background:var(--idle-bg);color:var(--text-dim);}
   .muted{color:var(--text-faint);font-size:11.5px;}
   .empty-state{text-align:center;padding:40px 20px;color:var(--text-faint);font-size:13px;}
   .load-more{text-align:center;margin-top:14px;}
+
+  .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:900px){.admin-grid{grid-template-columns:1fr;}}
 
   ::selection{background:var(--accent);color:#1a1508;}
 </style>
 </head>
 <body>
-<div class="shell">
 
-  <header class="top">
-    <div class="brand">
-      <div class="mark">DC</div>
-      <div>
-        <h1>Gestión Documental · Dicarina</h1>
-        <p>Control Interno — catálogo, homologación y generador de código</p>
-      </div>
+<!-- LOGIN SCREEN (hidden when authenticated) -->
+<div id="loginScreen" class="login-screen" style="display:none;">
+  <div class="login-box">
+    <div class="mark">DC</div>
+    <h1>Gestión Documental</h1>
+    <p>Control Interno · Dicarina</p>
+    <div class="field">
+      <label for="loginEmail">Correo electrónico</label>
+      <input type="email" id="loginEmail" placeholder="tu@email.com">
     </div>
+    <div class="field">
+      <label for="loginPassword">Contraseña</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+    </div>
+    <button id="btnLogin" class="primary">Iniciar sesión</button>
+    <div id="loginMsg" class="login-msg"></div>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until authenticated) -->
+<div id="mainApp" style="display:none;">
+  <div class="shell">
+
+    <header class="top">
+      <div class="brand">
+        <div class="mark">DC</div>
+        <div>
+          <h1>Gestión Documental · Dicarina</h1>
+          <p>Control Interno — catálogo, homologación y generador de código</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="user-badge">
+          <div><div id="userName" style="font-weight:500;">Cargando…</div><div class="role" id="userRole"></div></div>
+        </div>
+        <button class="logout" id="btnLogout">Cerrar sesión</button>
+      </div>
+    </header>
+
     <nav class="tabs">
       <button data-tab="dashboard" class="active">Dashboard</button>
       <button data-tab="generador">Generar código</button>
       <button data-tab="documentos">Documentos</button>
       <button data-tab="homologacion">Homologación</button>
+      <button data-tab="admin" id="tabAdmin" style="display:none;">Admin</button>
+      <button data-tab="auditoria" id="tabAudit" style="display:none;">Auditoría</button>
     </nav>
-  </header>
 
-  <div id="connBanner" class="conn-banner">
-    Esta página aún no está conectada a Supabase. Edita las constantes
-    <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> al inicio del
-    bloque <code>&lt;script&gt;</code> en <code>index.html</code> con los datos
-    de tu proyecto y vuelve a cargar.
-  </div>
-
-  <!-- ============ DASHBOARD ============ -->
-  <section id="tab-dashboard" class="active">
-    <div class="kpi-grid">
-      <div class="kpi tone-idle"><div class="num" id="kpiTotal">–</div><div class="lbl">Documentos totales</div></div>
-      <div class="kpi tone-ok"><div class="num" id="kpiVigentes">–</div><div class="lbl">Vigentes / sin observación</div></div>
-      <div class="kpi tone-warn"><div class="num" id="kpiProximos">–</div><div class="lbl">Próximos a caducar (&lt;2 años, cerca del límite)</div></div>
-      <div class="kpi tone-err"><div class="num" id="kpiCaducados">–</div><div class="lbl">Caducados (&gt;2 años sin revisión)</div></div>
-    </div>
-
-    <div class="panel">
-      <h2>Gobernanza del catálogo <span class="tag">estado actual</span></h2>
-      <div id="govRows"></div>
-      <p class="muted" style="margin-top:10px">
-        * Ningún documento migrado trae fecha de aprobación/revisión registrada en tus archivos de origen —
-        se muestran como "sin fecha" hasta que se complete ese dato por documento.
-      </p>
-    </div>
-
-    <div class="panel">
-      <h2>Documentos por Dirección <span class="tag">catálogo confirmado</span></h2>
-      <div id="dirRows"></div>
-    </div>
-  </section>
-
-  <!-- ============ GENERADOR ============ -->
-  <section id="tab-generador">
-    <div class="gen-grid">
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard" class="active">
+      <div class="kpi-grid">
+        <div class="kpi tone-idle"><div class="num" id="kpiTotal">–</div><div class="lbl">Documentos totales</div></div>
+        <div class="kpi tone-ok"><div class="num" id="kpiVigentes">–</div><div class="lbl">Vigentes / sin observación</div></div>
+        <div class="kpi tone-warn"><div class="num" id="kpiProximos">–</div><div class="lbl">Próximos a caducar</div></div>
+        <div class="kpi tone-err"><div class="num" id="kpiCaducados">–</div><div class="lbl">Caducados (&gt;2 años)</div></div>
+      </div>
       <div class="panel">
-        <h2>Parámetros del documento nuevo</h2>
-
-        <div class="field">
-          <label for="selTipo">Tipo de documento</label>
-          <select id="selTipo"><option value="">Seleccione…</option></select>
-        </div>
-        <div class="field">
-          <label for="selDireccion">Dirección</label>
-          <select id="selDireccion"><option value="">Seleccione…</option></select>
-        </div>
-        <div class="field">
-          <label for="selArea">Área / Departamento</label>
-          <select id="selArea" disabled><option value="">Seleccione una dirección primero…</option></select>
-        </div>
-        <div class="field">
-          <label for="inpConsecutivo">Consecutivo <span class="muted">(sugerido automáticamente, editable)</span></label>
-          <input type="number" id="inpConsecutivo" min="1" placeholder="001">
-        </div>
-        <div class="field">
-          <label for="inpTitulo">Título del documento</label>
-          <input type="text" id="inpTitulo" placeholder="Ej. Procedimiento de Recepción de Mercadería">
-        </div>
-        <div class="field">
-          <label for="inpResponsable">Responsable</label>
-          <input type="text" id="inpResponsable" placeholder="Nombre del responsable">
-        </div>
-
-        <button class="primary" id="btnRegistrar" disabled>Registrar en la Matriz Maestra</button>
-        <p class="muted" id="registrarMsg" style="margin-top:10px"></p>
+        <h2>Gobernanza del catálogo <span class="tag">estado actual</span></h2>
+        <div id="govRows"></div>
       </div>
-
       <div class="panel">
-        <h2>Vista previa y validación</h2>
-        <div class="code-preview state-idle" id="codePreview">— — — · — — — · — — —</div>
-        <div class="status-line state-idle" id="statusLine">
-          <span class="dot"></span><span id="statusText">Complete los campos para validar el código</span>
-        </div>
+        <h2>Documentos por Dirección <span class="tag">catálogo confirmado</span></h2>
+        <div id="dirRows"></div>
+      </div>
+    </section>
 
-        <div class="help">
-          Lógica replicada de tu generador en Excel:
-          <ol>
-            <li><b>Tipo-Dirección-Área-Consecutivo</b>, con guiones.</li>
-            <li>El consecutivo se sugiere leyendo el último usado para esa combinación en la Matriz Maestra.</li>
-            <li>Si el área está "pendiente de confirmación" por Talento Humano, el código no se habilita.</li>
-            <li>Si el código ya existe en la Matriz Maestra, se marca como duplicado y no se puede registrar.</li>
-          </ol>
+    <!-- GENERADOR -->
+    <section id="tab-generador">
+      <div class="gen-grid">
+        <div class="panel">
+          <h2>Parámetros del documento nuevo</h2>
+          <div class="field"><label for="selTipo">Tipo de documento</label><select id="selTipo"><option value="">Seleccione…</option></select></div>
+          <div class="field"><label for="selDireccion">Dirección</label><select id="selDireccion"><option value="">Seleccione…</option></select></div>
+          <div class="field"><label for="selArea">Área / Departamento</label><select id="selArea" disabled><option value="">Seleccione una dirección primero…</option></select></div>
+          <div class="field"><label for="inpConsecutivo">Consecutivo <span class="muted">(sugerido automáticamente, editable)</span></label><input type="number" id="inpConsecutivo" min="1" placeholder="001"></div>
+          <div class="field"><label for="inpTitulo">Título del documento</label><input type="text" id="inpTitulo" placeholder="Ej. Procedimiento de Recepción de Mercadería"></div>
+          <div class="field"><label for="inpResponsable">Responsable</label><input type="text" id="inpResponsable" placeholder="Nombre del responsable"></div>
+          <button class="primary" id="btnRegistrar" disabled>Registrar en la Matriz Maestra</button>
+          <p class="muted" id="registrarMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="panel">
+          <h2>Vista previa y validación</h2>
+          <div class="code-preview state-idle" id="codePreview">— — — · — — — · — — —</div>
+          <div class="status-line state-idle" id="statusLine"><span class="dot"></span><span id="statusText">Complete los campos para validar el código</span></div>
+          <div class="help">Lógica replicada de tu generador en Excel:
+            <ol><li><b>Tipo-Dirección-Área-Consecutivo</b>, con guiones.</li><li>El consecutivo se sugiere leyendo el último usado para esa combinación en la Matriz Maestra.</li><li>Si el área está "pendiente de confirmación" por Talento Humano, el código no se habilita.</li><li>Si el código ya existe en la Matriz Maestra, se marca como duplicado y no se puede registrar.</li></ol>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ DOCUMENTOS ============ -->
-  <section id="tab-documentos">
-    <div class="panel">
-      <div class="filters">
-        <input type="text" id="fltBuscar" placeholder="Buscar por código o título…">
-        <select id="fltDireccion"><option value="">Todas las direcciones</option></select>
-        <select id="fltEstadoHomolog">
-          <option value="">Homologación: todos</option>
-          <option value="true">Pendiente de homologar</option>
-          <option value="false">Código homologado / oficial</option>
-        </select>
+    <!-- DOCUMENTOS -->
+    <section id="tab-documentos">
+      <div class="panel">
+        <div class="filters">
+          <input type="text" id="fltBuscar" placeholder="Buscar por código o título…">
+          <select id="fltDireccion"><option value="">Todas las direcciones</option></select>
+          <select id="fltEstadoHomolog">
+            <option value="">Homologación: todos</option>
+            <option value="true">Pendiente de homologar</option>
+            <option value="false">Código homologado / oficial</option>
+          </select>
+        </div>
+        <div id="tablaWrap">
+          <table>
+            <thead><tr><th>Código</th><th>Título</th><th>Dirección / Área</th><th>Creado por</th><th>Tipo</th><th>Homologación</th><th></th></tr></thead>
+            <tbody id="tblDocumentos"></tbody>
+          </table>
+          <div class="empty-state" id="docsEmpty" style="display:none">Sin resultados para este filtro.</div>
+        </div>
+        <div class="load-more"><button class="ghost" id="btnLoadMore">Cargar más</button></div>
       </div>
-      <div id="tablaWrap">
+    </section>
+
+    <!-- HOMOLOGACIÓN -->
+    <section id="tab-homologacion">
+      <div class="panel">
+        <h2>Documentos pendientes de homologar <span class="tag" id="pendCount"></span></h2>
+        <p class="muted" style="margin-bottom:14px">Códigos legado que se conservaron. Asigna el código correcto cuando corresponda.</p>
         <table>
-          <thead>
-            <tr><th>Código</th><th>Título</th><th>Dirección / Área</th><th>Tipo</th><th>Estado</th><th>Homologación</th></tr>
-          </thead>
-          <tbody id="tblDocumentos"></tbody>
+          <thead><tr><th>Código actual</th><th>Título</th><th>Creado por</th><th>Observación</th><th></th></tr></thead>
+          <tbody id="tblHomolog"></tbody>
         </table>
-        <div class="empty-state" id="docsEmpty" style="display:none">Sin resultados para este filtro.</div>
+        <div class="load-more"><button class="ghost" id="btnLoadMoreHomolog">Cargar más</button></div>
       </div>
-      <div class="load-more"><button class="ghost" id="btnLoadMore">Cargar más</button></div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ HOMOLOGACIÓN ============ -->
-  <section id="tab-homologacion">
-    <div class="panel">
-      <h2>Documentos pendientes de homologar <span class="tag" id="pendCount"></span></h2>
-      <p class="muted" style="margin-bottom:14px">
-        Códigos legado que se conservaron tal cual durante la migración (tipo no oficial, área sin
-        clasificar en el catálogo nuevo, o código duplicado en la intranet actual). Asigna el código
-        correcto cuando corresponda.
-      </p>
-      <table>
-        <thead><tr><th>Código actual</th><th>Título</th><th>Carpeta legado</th><th>Observación</th><th></th></tr></thead>
-        <tbody id="tblHomolog"></tbody>
-      </table>
-      <div class="load-more"><button class="ghost" id="btnLoadMoreHomolog">Cargar más</button></div>
-    </div>
-  </section>
+    <!-- ADMIN (solo para José) -->
+    <section id="tab-admin">
+      <div class="admin-grid">
+        <div class="panel">
+          <h2>Usuarios del sistema</h2>
+          <table>
+            <thead><tr><th>Correo</th><th>Nombre</th><th>Rol</th><th>Estado</th></tr></thead>
+            <tbody id="tblUsuarios"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2>Invitaciones pendientes</h2>
+          <table>
+            <thead><tr><th>Correo</th><th>Nombre</th><th>Creada</th><th>Válida hasta</th><th></th></tr></thead>
+            <tbody id="tblInvitaciones"></tbody>
+          </table>
+          <button class="primary" id="btnNewInvitation" style="margin-top:14px;">Enviar nueva invitación</button>
+        </div>
+      </div>
+    </section>
 
+    <!-- AUDITORÍA (todos pueden ver) -->
+    <section id="tab-auditoria">
+      <div class="panel">
+        <h2>Registro de cambios <span class="tag">últimas 50 acciones</span></h2>
+        <div class="filters">
+          <select id="fltAuditTabla">
+            <option value="">Todas las tablas</option>
+            <option value="documentos">Documentos</option>
+            <option value="homologaciones">Homologaciones</option>
+            <option value="solicitudes">Solicitudes</option>
+          </select>
+          <select id="fltAuditAccion">
+            <option value="">Todas las acciones</option>
+            <option value="INSERT">Crear (INSERT)</option>
+            <option value="UPDATE">Editar (UPDATE)</option>
+            <option value="DELETE">Eliminar (DELETE)</option>
+          </select>
+        </div>
+        <table>
+          <thead><tr><th>Tabla</th><th>Acción</th><th>Registro</th><th>Usuario</th><th>Timestamp</th></tr></thead>
+          <tbody id="tblAuditoria"></tbody>
+        </table>
+        <div class="load-more"><button class="ghost" id="btnLoadMoreAudit">Cargar más</button></div>
+      </div>
+    </section>
+
+  </div>
 </div>
 
 <script>
 /* =====================================================================
-   CONFIGURA AQUÍ tu proyecto Supabase (Project Settings → API)
+   CONFIGURA AQUÍ tu proyecto Supabase
 ===================================================================== */
 const SUPABASE_URL = "https://madgjhrsaobdpdzasndr.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_e3UNnIQaEdjuvsUlXGN3TQ_k1IlYdqh";
 /* ===================================================================== */
 
-const hasConfig = !SUPABASE_URL.includes("TU-PROYECTO") && !SUPABASE_ANON_KEY.includes("TU-CLAVE");
-let sb = null;
-if (hasConfig) {
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} else {
-  document.getElementById('connBanner').style.display = 'block';
-}
-
-/* ---------------- tabs ---------------- */
-document.querySelectorAll('nav.tabs button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
-  });
-});
-
-/* ---------------- estado global ---------------- */
+let sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+let currentRole = null;
 let CAT_TIPOS = [], CAT_DIRECCIONES = [], CAT_AREAS = [];
 let DOCS_PAGE = 0, DOCS_PAGE_SIZE = 25;
-let HOMOLOG_PAGE = 0;
+let HOMOLOG_PAGE = 0, AUDIT_PAGE = 0;
 
+/* -------- AUTH -------- */
 async function boot(){
-  if(!hasConfig) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session){
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+    setupLoginEvents();
+  } else {
+    currentUser = session.user;
+    const { data: role } = await sb.from('user_roles').select('rol,nombre').eq('user_id', currentUser.id).single();
+    currentRole = role?.rol || 'viewer';
+    showApp();
+  }
+}
+
+function setupLoginEvents(){
+  document.getElementById('btnLogin').addEventListener('click', async ()=>{
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if(!email || !password){ setLoginMsg('Completa los campos', 'err'); return; }
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){ setLoginMsg('Error: '+error.message, 'err'); return; }
+    setLoginMsg('Sesión iniciada… redirigiendo…', 'ok');
+    setTimeout(()=> window.location.reload(), 1000);
+  });
+  document.getElementById('loginPassword').addEventListener('keypress', e => e.key==='Enter' && document.getElementById('btnLogin').click());
+}
+function setLoginMsg(msg, state){ const el = document.getElementById('loginMsg'); el.textContent = msg; el.className = 'login-msg '+state; }
+
+async function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('userName').textContent = currentUser.email.split('@')[0];
+  document.getElementById('userRole').textContent = currentRole.toUpperCase();
+  
+  // mostrar pestañas de admin solo si es admin
+  if(currentRole === 'admin'){
+    document.getElementById('tabAdmin').style.display = 'inline-block';
+  }
+  document.getElementById('tabAudit').style.display = 'inline-block';
+  
+  document.getElementById('btnLogout').addEventListener('click', async ()=>{
+    await sb.auth.signOut();
+    window.location.reload();
+  });
+  
+  await loadCatalogs();
+  fillCatalogSelects();
+  setupTabEvents();
+  loadDashboard();
+  loadDocumentos(true);
+  loadHomologacion(true);
+  if(currentRole === 'admin'){ loadAdminPanel(); }
+  loadAuditoria(true);
+}
+
+async function loadCatalogs(){
   const [{data:tipos}, {data:dirs}, {data:areas}] = await Promise.all([
     sb.from('catalogo_tipos').select('*').order('codigo'),
     sb.from('catalogo_direcciones').select('*').order('nombre'),
     sb.from('catalogo_areas').select('*').order('nombre'),
   ]);
   CAT_TIPOS = tipos||[]; CAT_DIRECCIONES = dirs||[]; CAT_AREAS = areas||[];
-  fillCatalogSelects();
-  loadDashboard();
-  loadDocumentos(true);
-  loadHomologacion(true);
 }
 
-/* ---------------- dashboard ---------------- */
+/* -------- TABS -------- */
+function setupTabEvents(){
+  document.querySelectorAll('nav.tabs button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+/* -------- DASHBOARD -------- */
 async function loadDashboard(){
   const { count: total } = await sb.from('documentos').select('*', {count:'exact', head:true});
-  const { count: pendHomolog } = await sb.from('documentos').select('*', {count:'exact', head:true}).eq('requiere_homologacion', true);
-  const { count: dup } = await sb.from('documentos').select('*', {count:'exact', head:true}).eq('codigo_duplicado', true);
-  const { count: sinFecha } = await sb.from('documentos').select('*', {count:'exact', head:true}).is('fecha_aprobacion', null).is('fecha_ultima_revision', null);
-
   document.getElementById('kpiTotal').textContent = total ?? '–';
-
-  // vigencia: usa la vista v_vigencia
   const { data: vig } = await sb.from('v_vigencia').select('estado_vigencia');
   let counts = {vigente:0, proximo_a_caducar:0, caducado:0, sin_fecha:0};
   (vig||[]).forEach(r=> counts[r.estado_vigencia] = (counts[r.estado_vigencia]||0)+1);
   document.getElementById('kpiVigentes').textContent = counts.vigente;
   document.getElementById('kpiProximos').textContent = counts.proximo_a_caducar;
   document.getElementById('kpiCaducados').textContent = counts.caducado;
-
+  
+  const { count: pendHomolog } = await sb.from('documentos').select('*', {count:'exact', head:true}).eq('requiere_homologacion', true);
+  const { count: dup } = await sb.from('documentos').select('*', {count:'exact', head:true}).eq('codigo_duplicado', true);
+  const { count: sinFecha } = await sb.from('documentos').select('*', {count:'exact', head:true}).is('fecha_aprobacion', null).is('fecha_ultima_revision', null);
   document.getElementById('govRows').innerHTML = `
     ${govRow('Pendientes de homologar', pendHomolog, total)}
     ${govRow('Códigos duplicados detectados', dup, total)}
     ${govRow('Sin fecha de aprobación/revisión registrada', sinFecha ?? counts.sin_fecha, total)}
   `;
-
+  
   const { data: byDir } = await sb.from('documentos').select('direccion_codigo');
   const tally = {};
   (byDir||[]).forEach(r=>{ const k=r.direccion_codigo||'Sin dirección'; tally[k]=(tally[k]||0)+1; });
@@ -413,26 +438,23 @@ async function loadDashboard(){
   const dirRows = Object.entries(tally).sort((a,b)=>b[1]-a[1]).map(([code,n])=>{
     const dir = CAT_DIRECCIONES.find(d=>d.codigo===code);
     const name = dir ? dir.nombre : code;
-    return `<div class="bar-row"><div class="name">${escapeHtml(name)}</div><div class="track"><div class="fill" style="width:${(n/max*100).toFixed(0)}%"></div></div><div class="count">${n}</div></div>`;
+    return `<div class="bar-row"><div class="name">${esc(name)}</div><div class="track"><div class="fill" style="width:${(n/max*100).toFixed(0)}%"></div></div><div class="count">${n}</div></div>`;
   }).join('');
   document.getElementById('dirRows').innerHTML = dirRows || '<p class="muted">Sin datos.</p>';
 }
-function govRow(label, n, total){
-  const pct = total ? Math.round((n/total)*100) : 0;
-  return `<div class="bar-row"><div class="name">${label}</div><div class="track"><div class="fill" style="width:${pct}%"></div></div><div class="count">${n}</div></div>`;
-}
+function govRow(label, n, total){ const pct = total ? Math.round((n/total)*100) : 0; return `<div class="bar-row"><div class="name">${label}</div><div class="track"><div class="fill" style="width:${pct}%"></div></div><div class="count">${n}</div></div>`; }
 
-/* ---------------- generador de código ---------------- */
+/* -------- GENERADOR -------- */
 function fillCatalogSelects(){
   const selTipo = document.getElementById('selTipo');
-  CAT_TIPOS.forEach(t=> selTipo.insertAdjacentHTML('beforeend', `<option value="${t.codigo}">${t.codigo} — ${escapeHtml(t.nombre)}</option>`));
-
+  CAT_TIPOS.forEach(t=> selTipo.insertAdjacentHTML('beforeend', `<option value="${t.codigo}">${t.codigo} — ${esc(t.nombre)}</option>`));
+  
   const selDir = document.getElementById('selDireccion');
-  CAT_DIRECCIONES.forEach(d=> selDir.insertAdjacentHTML('beforeend', `<option value="${d.codigo}">${d.codigo} — ${escapeHtml(d.nombre)}</option>`));
-
+  CAT_DIRECCIONES.forEach(d=> selDir.insertAdjacentHTML('beforeend', `<option value="${d.codigo}">${d.codigo} — ${esc(d.nombre)}</option>`));
+  
   const fltDir = document.getElementById('fltDireccion');
-  CAT_DIRECCIONES.forEach(d=> fltDir.insertAdjacentHTML('beforeend', `<option value="${d.codigo}">${escapeHtml(d.nombre)}</option>`));
-
+  CAT_DIRECCIONES.forEach(d=> fltDir.insertAdjacentHTML('beforeend', `<option value="${d.codigo}">${esc(d.nombre)}</option>`));
+  
   selDir.addEventListener('change', onDireccionChange);
   [selTipo, document.getElementById('selArea'), document.getElementById('inpConsecutivo'), document.getElementById('inpTitulo')]
     .forEach(el=> el.addEventListener('input', updatePreview));
@@ -447,7 +469,7 @@ function onDireccionChange(){
   selArea.insertAdjacentHTML('beforeend', '<option value="">Seleccione…</option>');
   CAT_AREAS.filter(a=>a.direccion_codigo===dirCode).forEach(a=>{
     const flag = a.estado==='pendiente' ? '  ⚠ pendiente confirm.' : '';
-    selArea.insertAdjacentHTML('beforeend', `<option value="${a.codigo}" data-estado="${a.estado}">${a.codigo} — ${escapeHtml(a.nombre)}${flag}</option>`);
+    selArea.insertAdjacentHTML('beforeend', `<option value="${a.codigo}" data-estado="${a.estado}">${a.codigo} — ${esc(a.nombre)}${flag}</option>`);
   });
   updatePreview();
 }
@@ -460,12 +482,12 @@ async function updatePreview(){
   const areaEstado = areaSel.selectedOptions[0]?.dataset?.estado;
   let consecutivo = document.getElementById('inpConsecutivo').value;
   const titulo = document.getElementById('inpTitulo').value.trim();
-
+  
   const preview = document.getElementById('codePreview');
   const status = document.getElementById('statusLine');
   const statusText = document.getElementById('statusText');
   const btn = document.getElementById('btnRegistrar');
-
+  
   if(!tipo || !dir || !area){
     preview.className = 'code-preview state-idle';
     preview.textContent = `${tipo||'TIPO'}-${dir||'DIR'}-${area||'ÁREA'}-###`;
@@ -473,8 +495,8 @@ async function updatePreview(){
     btn.disabled = true;
     return;
   }
-
-  if(!consecutivo && sb){
+  
+  if(!consecutivo){
     const { data } = await sb.from('documentos').select('codigo').ilike('codigo', `${tipo}-${dir}-${area}-%`);
     let max = 0;
     (data||[]).forEach(r=>{
@@ -488,38 +510,32 @@ async function updatePreview(){
   const consFmt = String(parseInt(consNum,10)||1).padStart(3,'0');
   const codigo = `${tipo}-${dir}-${area}-${consFmt}`;
   preview.textContent = codigo;
-
+  
   if(areaEstado === 'pendiente'){
     preview.className='code-preview state-warn';
-    setStatus('warn', `El área "${area}" está pendiente de confirmación por Talento Humano. Consulta con Control Interno antes de usar este código.`);
+    setStatus('warn', `El área "${area}" está pendiente de confirmación. Consulta con Control Interno antes de usar este código.`);
     btn.disabled = true;
     return;
   }
-
-  if(sb){
-    const { data: dup } = await sb.from('documentos').select('id').eq('codigo', codigo).limit(1);
-    if(dup && dup.length){
-      preview.className='code-preview state-err';
-      setStatus('err', `${codigo} ya existe en la Matriz Maestra. Cambie el consecutivo.`);
-      btn.disabled = true;
-      return;
-    }
+  
+  const { data: dup } = await sb.from('documentos').select('id').eq('codigo', codigo).limit(1);
+  if(dup && dup.length){
+    preview.className='code-preview state-err';
+    setStatus('err', `${codigo} ya existe. Cambie el consecutivo.`);
+    btn.disabled = true;
+    return;
   }
-
+  
   preview.className='code-preview state-ok';
   if(!titulo){
-    setStatus('ok', `${codigo} está disponible. Falta el título del documento para registrar.`);
+    setStatus('ok', `${codigo} está disponible. Falta el título para registrar.`);
     btn.disabled = true;
   } else {
     setStatus('ok', `${codigo} — código válido y disponible. Listo para registrar.`);
     btn.disabled = false;
   }
 }
-function setStatus(state, text){
-  const el = document.getElementById('statusLine');
-  el.className = 'status-line state-'+state;
-  document.getElementById('statusText').textContent = text;
-}
+function setStatus(state, text){ const el = document.getElementById('statusLine'); el.className = 'status-line state-'+state; document.getElementById('statusText').textContent = text; }
 
 document.getElementById('btnRegistrar').addEventListener('click', async ()=>{
   const tipo = document.getElementById('selTipo').value;
@@ -530,56 +546,59 @@ document.getElementById('btnRegistrar').addEventListener('click', async ()=>{
   const codigo = `${tipo}-${dir}-${area}-${consFmt}`;
   const titulo = document.getElementById('inpTitulo').value.trim();
   const responsable = document.getElementById('inpResponsable').value.trim();
-
+  
   const { error } = await sb.from('documentos').insert({
     codigo, titulo, tipo_prefijo: tipo, tipo_es_oficial: true,
     direccion_codigo: dir, area_codigo: area, responsable,
-    estado: 'En revisión', requiere_homologacion: false, codigo_duplicado: false
+    estado: 'En revisión', requiere_homologacion: false, codigo_duplicado: false,
+    creado_por: currentUser.id, creado_por_email: currentUser.email,
+    modificado_por: currentUser.id, modificado_por_email: currentUser.email
   });
   const msg = document.getElementById('registrarMsg');
-  if(error){ msg.textContent = 'Error al registrar: '+error.message; msg.style.color='var(--err)'; return; }
-  msg.textContent = `${codigo} registrado correctamente.`; msg.style.color='var(--ok)';
+  if(error){ msg.textContent = 'Error: '+error.message; msg.style.color='var(--err)'; return; }
+  msg.textContent = `${codigo} registrado correctamente por ${currentUser.email}.`; msg.style.color='var(--ok)';
   document.getElementById('inpTitulo').value=''; document.getElementById('inpResponsable').value='';
   document.getElementById('inpConsecutivo').value='';
   updatePreview(); loadDashboard(); loadDocumentos(true);
 });
 
-/* ---------------- listado de documentos ---------------- */
+/* -------- DOCUMENTOS -------- */
 async function loadDocumentos(reset){
   if(reset) DOCS_PAGE = 0;
   const q = document.getElementById('fltBuscar').value.trim();
   const dir = document.getElementById('fltDireccion').value;
   const homolog = document.getElementById('fltEstadoHomolog').value;
-
+  
   let query = sb.from('documentos').select('*').order('codigo').range(DOCS_PAGE*DOCS_PAGE_SIZE, DOCS_PAGE*DOCS_PAGE_SIZE + DOCS_PAGE_SIZE - 1);
   if(q) query = query.or(`codigo.ilike.%${q}%,titulo.ilike.%${q}%`);
   if(dir) query = query.eq('direccion_codigo', dir);
   if(homolog) query = query.eq('requiere_homologacion', homolog === 'true');
-
+  
   const { data } = await query;
   const tbody = document.getElementById('tblDocumentos');
   if(reset) tbody.innerHTML = '';
   (data||[]).forEach(d=>{
     const area = CAT_AREAS.find(a=>a.codigo===d.area_codigo);
     const dirC = CAT_DIRECCIONES.find(x=>x.codigo===d.direccion_codigo);
+    const delBtn = currentRole === 'admin' ? `<button class="danger" onclick="delDoc(${d.id})">Eliminar</button>` : '';
     tbody.insertAdjacentHTML('beforeend', `<tr>
-      <td class="code-cell">${escapeHtml(d.codigo)}</td>
-      <td>${escapeHtml(d.titulo)}</td>
-      <td class="muted">${dirC?escapeHtml(dirC.nombre):'—'} / ${area?escapeHtml(area.nombre):(d.area_codigo||'—')}</td>
-      <td>${escapeHtml(d.tipo_prefijo||'—')}${d.tipo_es_oficial?'':' <span class="pill warn">no oficial</span>'}</td>
-      <td>${escapeHtml(d.estado||'—')}</td>
+      <td class="code-cell">${esc(d.codigo||'—')}</td>
+      <td>${esc(d.titulo)}</td>
+      <td class="muted">${dirC?esc(dirC.nombre):'—'} / ${area?esc(area.nombre):(d.area_codigo||'—')}</td>
+      <td class="muted">${esc(d.creado_por_email?.split('@')[0]||'—')}</td>
+      <td>${esc(d.tipo_prefijo||'—')}${d.tipo_es_oficial?'':' <span class="pill warn">no oficial</span>'}</td>
       <td>${d.requiere_homologacion ? '<span class="pill warn">pendiente</span>' : '<span class="pill ok">homologado</span>'}${d.codigo_duplicado?' <span class="pill err">duplicado</span>':''}</td>
+      <td>${delBtn}</td>
     </tr>`);
   });
   document.getElementById('docsEmpty').style.display = (reset && (!data || !data.length)) ? 'block':'none';
   DOCS_PAGE++;
 }
-['fltBuscar','fltDireccion','fltEstadoHomolog'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', ()=> hasConfig && loadDocumentos(true));
-});
+window.delDoc = async (id) => { if(!confirm('¿Eliminar este documento? Esta acción no se puede deshacer.')) return; const {error} = await sb.from('documentos').delete().eq('id', id); if(error) alert('Error: '+error.message); else { loadDocumentos(true); loadDashboard(); } };
+['fltBuscar','fltDireccion','fltEstadoHomolog'].forEach(id=>{ document.getElementById(id).addEventListener('input', ()=> loadDocumentos(true)); });
 document.getElementById('btnLoadMore').addEventListener('click', ()=> loadDocumentos(false));
 
-/* ---------------- homologación pendiente ---------------- */
+/* -------- HOMOLOGACIÓN -------- */
 async function loadHomologacion(reset){
   if(reset) HOMOLOG_PAGE = 0;
   const { data, count } = await sb.from('documentos').select('*', {count:'exact'})
@@ -588,29 +607,88 @@ async function loadHomologacion(reset){
   const tbody = document.getElementById('tblHomolog');
   if(reset){ tbody.innerHTML=''; document.getElementById('pendCount').textContent = count+' documentos'; }
   (data||[]).forEach(d=>{
+    const delBtn = currentRole === 'admin' ? `<button class="danger" onclick="delDoc(${d.id})">Eliminar</button>` : '';
     tbody.insertAdjacentHTML('beforeend', `<tr>
-      <td class="code-cell">${escapeHtml(d.codigo)}</td>
-      <td>${escapeHtml(d.titulo)}</td>
-      <td class="muted">${escapeHtml(d.carpeta_legacy||'—')}</td>
-      <td class="muted">${escapeHtml(d.observaciones||'—')}</td>
-      <td><button class="ghost" onclick="promptHomologar(${d.id}, '${escapeAttr(d.codigo)}')">Homologar</button></td>
+      <td class="code-cell">${esc(d.codigo||'SIN CÓDIGO')}</td>
+      <td>${esc(d.titulo)}</td>
+      <td class="muted">${esc(d.creado_por_email?.split('@')[0]||'—')}</td>
+      <td class="muted">${esc(d.observaciones||'—')}</td>
+      <td><button class="ghost" onclick="promptHomologar(${d.id}, '${esc(d.codigo||'SIN CÓDIGO')}')">Homologar</button> ${delBtn}</td>
     </tr>`);
   });
   HOMOLOG_PAGE++;
 }
+window.promptHomologar = async (id, codigoLegado) => { const nuevo = prompt(`Nuevo código oficial para reemplazar "${codigoLegado}":`); if(!nuevo) return; await sb.from('homologaciones').insert({ codigo_legado: codigoLegado, codigo_nuevo: nuevo, usuario_id: currentUser.id, usuario_email: currentUser.email }); await sb.from('documentos').update({ codigo: nuevo, codigo_legado: codigoLegado, requiere_homologacion: false, modificado_por: currentUser.id, modificado_por_email: currentUser.email }).eq('id', id); loadHomologacion(true); loadDocumentos(true); loadDashboard(); };
 document.getElementById('btnLoadMoreHomolog').addEventListener('click', ()=> loadHomologacion(false));
 
-window.promptHomologar = async function(id, codigoLegado){
-  const nuevo = prompt(`Nuevo código oficial para reemplazar "${codigoLegado}":`);
-  if(!nuevo) return;
-  await sb.from('homologaciones').insert({ codigo_legado: codigoLegado, codigo_nuevo: nuevo });
-  await sb.from('documentos').update({ codigo: nuevo, codigo_legado: codigoLegado, requiere_homologacion: false }).eq('id', id);
-  loadHomologacion(true); loadDocumentos(true); loadDashboard();
-};
+/* -------- ADMIN PANEL -------- */
+async function loadAdminPanel(){
+  const { data: users } = await sb.from('user_roles').select('*').order('email');
+  const tbody = document.getElementById('tblUsuarios');
+  tbody.innerHTML = '';
+  (users||[]).forEach(u=>{
+    tbody.insertAdjacentHTML('beforeend', `<tr>
+      <td>${esc(u.email)}</td>
+      <td>${esc(u.nombre||'—')}</td>
+      <td>${u.rol.toUpperCase()}</td>
+      <td><span class="pill ${u.activo?'ok':'err'}">${u.activo?'Activo':'Inactivo'}</span></td>
+    </tr>`);
+  });
+  
+  const { data: invs } = await sb.from('invitations').select('*').eq('usado', false).order('created_at', {ascending: false});
+  const tbodyInv = document.getElementById('tblInvitaciones');
+  tbodyInv.innerHTML = '';
+  (invs||[]).forEach(inv=>{
+    const expired = new Date(inv.expires_at) < new Date();
+    tbody.insertAdjacentHTML('beforeend', `<tr>
+      <td>${esc(inv.email)}</td>
+      <td>${esc(inv.nombre||'—')}</td>
+      <td class="muted">${new Date(inv.created_at).toLocaleDateString('es-PA')}</td>
+      <td>${expired ? '<span class="pill err">Expirada</span>' : '<span class="pill ok">'+new Date(inv.expires_at).toLocaleDateString('es-PA')+'</span>'}</td>
+      <td><button class="ghost" onclick="resendInvitation('${esc(inv.email)}')">Reenviar</button></td>
+    </tr>`);
+  });
+  
+  document.getElementById('btnNewInvitation').addEventListener('click', ()=>{
+    const email = prompt('Correo del nuevo usuario (formato: nombre@empresa.com):');
+    if(!email) return;
+    const nombre = prompt('Nombre completo:');
+    if(!nombre) return;
+    promptNewInvitation(email, nombre);
+  });
+}
+async function promptNewInvitation(email, nombre){ const {error} = await sb.from('invitations').insert({id: crypto.randomUUID().toString(), email, nombre, rol: 'editor', creada_por: currentUser.id, expires_at: new Date(Date.now() + 7*24*60*60*1000).toISOString(), usado: false}); if(error) alert('Error: '+error.message); else { alert(`Invitación enviada a ${email}. Válida por 7 días.`); loadAdminPanel(); } }
+window.resendInvitation = async (email) => { alert(`Invitación reenviada a ${email}. (Nota: en producción, esto enviaría un email real)`); };
 
-/* ---------------- utils ---------------- */
-function escapeHtml(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function escapeAttr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
+/* -------- AUDITORÍA -------- */
+async function loadAuditoria(reset){
+  if(reset) AUDIT_PAGE = 0;
+  const tabla = document.getElementById('fltAuditTabla').value;
+  const accion = document.getElementById('fltAuditAccion').value;
+  
+  let query = sb.from('audit_log').select('*').order('created_at', {ascending: false}).range(AUDIT_PAGE*DOCS_PAGE_SIZE, AUDIT_PAGE*DOCS_PAGE_SIZE + DOCS_PAGE_SIZE - 1);
+  if(tabla) query = query.eq('tabla', tabla);
+  if(accion) query = query.eq('accion', accion);
+  
+  const { data } = await query;
+  const tbody = document.getElementById('tblAuditoria');
+  if(reset) tbody.innerHTML = '';
+  (data||[]).forEach(a=>{
+    tbody.insertAdjacentHTML('beforeend', `<tr>
+      <td class="muted">${esc(a.tabla)}</td>
+      <td><span class="pill ${a.accion==='DELETE'?'err':a.accion==='UPDATE'?'warn':'ok'}">${a.accion}</span></td>
+      <td class="code-cell">${esc(a.registro_id||'—')}</td>
+      <td class="muted">${esc(a.usuario_email?.split('@')[0]||'—')}</td>
+      <td class="muted">${new Date(a.created_at).toLocaleString('es-PA')}</td>
+    </tr>`);
+  });
+  AUDIT_PAGE++;
+}
+['fltAuditTabla','fltAuditAccion'].forEach(id=>{ document.getElementById(id).addEventListener('input', ()=> loadAuditoria(true)); });
+document.getElementById('btnLoadMoreAudit').addEventListener('click', ()=> loadAuditoria(false));
+
+/* -------- UTILS -------- */
+function esc(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 boot();
 </script>
