@@ -149,7 +149,7 @@
           <select id="fltDireccion"><option value="">Todas las direcciones</option></select>
         </div>
         <table>
-          <thead><tr><th>Código</th><th>Título</th><th>Dirección / Área</th><th>Creado por</th><th></th></tr></thead>
+          <thead><tr><th>Código</th><th>Título</th><th>Dirección / Área</th><th>Fecha aprobación</th><th>Creado por</th><th></th></tr></thead>
           <tbody id="tblDocumentos"></tbody>
         </table>
         <div class="empty-state" id="docsEmpty" style="display:none">Sin resultados.</div>
@@ -333,6 +333,7 @@ document.getElementById('btnRegistrar').addEventListener('click', async ()=>{
     codigo, titulo, tipo_prefijo: tipo, tipo_es_oficial: true,
     direccion_codigo: dir, area_codigo: area, responsable,
     estado: 'En revisión', requiere_homologacion: false, codigo_duplicado: false,
+    fecha_aprobacion: new Date().toISOString().slice(0,10),
     creado_por: currentUser.id, creado_por_email: currentUser.email,
     modificado_por: currentUser.id, modificado_por_email: currentUser.email
   });
@@ -379,7 +380,7 @@ async function loadDocumentos(reset){
   const q = document.getElementById('fltBuscar').value.trim();
   const dir = document.getElementById('fltDireccion').value;
   
-  let query = sb.from('documentos').select('*').order('codigo').range(DOCS_PAGE*25, DOCS_PAGE*25+24);
+  let query = sb.from('documentos').select('*').order('created_at', {ascending:false}).range(DOCS_PAGE*25, DOCS_PAGE*25+24);
   if(q) query = query.or(`codigo.ilike.%${q}%,titulo.ilike.%${q}%`);
   if(dir) query = query.eq('direccion_codigo', dir);
   
@@ -390,16 +391,28 @@ async function loadDocumentos(reset){
     const area = CAT_AREAS.find(a=>a.codigo===d.area_codigo);
     const dirC = CAT_DIRECCIONES.find(x=>x.codigo===d.direccion_codigo);
     const delBtn = currentRole === 'admin' ? `<button class="danger" onclick="delDoc(${d.id})">Eliminar</button>` : '';
+    const fechaVal = d.fecha_aprobacion || '';
     tbody.insertAdjacentHTML('beforeend', `<tr>
       <td class="code-cell">${esc(d.codigo||'—')}</td>
       <td>${esc(d.titulo)}</td>
       <td class="muted">${dirC?esc(dirC.nombre):'—'} / ${area?esc(area.nombre):'—'}</td>
+      <td><input type="date" value="${fechaVal}" style="min-width:140px" onchange="updateFecha(${d.id}, this.value)"></td>
       <td class="muted">${esc(d.creado_por_email?.split('@')[0]||'—')}</td>
       <td>${delBtn}</td>
     </tr>`);
   });
   DOCS_PAGE++;
 }
+
+window.updateFecha = async (id, fecha) => {
+  const { error } = await sb.from('documentos').update({
+    fecha_aprobacion: fecha || null,
+    modificado_por: currentUser.id,
+    modificado_por_email: currentUser.email
+  }).eq('id', id);
+  if(error){ alert('Error al guardar fecha: '+error.message); return; }
+  loadDashboard();
+};
 
 window.delDoc = async (id) => { if(!confirm('¿Eliminar? No se puede deshacer.')) return; const {error} = await sb.from('documentos').delete().eq('id', id); if(error) alert('Error: '+error.message); else { loadDocumentos(true); loadDashboard(); } };
 
