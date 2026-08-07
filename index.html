@@ -117,6 +117,10 @@
         <h2>Documentos por Dirección <span class="tag">catálogo confirmado</span></h2>
         <div id="dirRows"></div>
       </div>
+      <div class="panel">
+        <h2>Documentos por Tipo de Documento <span class="tag">PO · MA · PR · IN · FO y otros</span></h2>
+        <div id="tipoRows"></div>
+      </div>
     </section>
 
     <!-- GENERADOR -->
@@ -130,7 +134,10 @@
           <div class="field"><label for="inpConsecutivo">Consecutivo</label><input type="number" id="inpConsecutivo" min="1" placeholder="001"></div>
           <div class="field"><label for="inpTitulo">Título del documento</label><input type="text" id="inpTitulo" placeholder="Ej. Procedimiento de Recepción de Mercadería"></div>
           <div class="field"><label for="inpResponsable">Responsable</label><input type="text" id="inpResponsable" placeholder="Nombre del responsable"></div>
-          <button class="primary" id="btnRegistrar" disabled>Registrar en la Matriz Maestra</button>
+          <div style="display:flex; gap:10px;">
+            <button class="primary" id="btnRegistrar" disabled style="flex:1;">Registrar en la Matriz Maestra</button>
+            <button class="ghost" id="btnReiniciar" type="button">Reiniciar</button>
+          </div>
           <p class="muted" id="registrarMsg" style="margin-top:10px"></p>
         </div>
         <div class="panel">
@@ -147,6 +154,10 @@
         <div class="filters">
           <input type="text" id="fltBuscar" placeholder="Buscar por código o título…">
           <select id="fltDireccion"><option value="">Todas las direcciones</option></select>
+          <select id="fltOrden">
+            <option value="desc">Fecha: más reciente primero</option>
+            <option value="asc">Fecha: más antigua primero</option>
+          </select>
         </div>
         <table>
           <thead><tr><th>Código</th><th>Título</th><th>Dirección / Área</th><th>Fecha aprobación</th><th>Creado por</th><th></th></tr></thead>
@@ -340,9 +351,22 @@ document.getElementById('btnRegistrar').addEventListener('click', async ()=>{
   const msg = document.getElementById('registrarMsg');
   if(error){ msg.textContent = 'Error: '+error.message; msg.style.color='var(--err)'; return; }
   msg.textContent = `${codigo} registrado correctamente.`; msg.style.color='var(--ok)';
-  ['inpTitulo','inpResponsable','inpConsecutivo'].forEach(id=> document.getElementById(id).value='');
-  updatePreview(); loadDashboard(); loadDocumentos(true);
+  resetGenerador(false);
+  loadDashboard(); loadDocumentos(true);
 });
+
+function resetGenerador(clearMsg){
+  document.getElementById('selTipo').value = '';
+  document.getElementById('selDireccion').value = '';
+  onDireccionChange();
+  document.getElementById('inpTitulo').value = '';
+  document.getElementById('inpResponsable').value = '';
+  document.getElementById('inpConsecutivo').value = '';
+  document.getElementById('inpConsecutivo').placeholder = '001';
+  if(clearMsg !== false) document.getElementById('registrarMsg').textContent = '';
+  updatePreview();
+}
+document.getElementById('btnReiniciar').addEventListener('click', ()=> resetGenerador(true));
 
 async function loadDashboard(){
   const { count: total } = await sb.from('documentos').select('*', {count:'exact', head:true});
@@ -371,6 +395,17 @@ async function loadDashboard(){
     return `<div class="bar-row"><div class="name">${esc(name)}</div><div class="track"><div class="fill" style="width:${(n/max*100).toFixed(0)}%"></div></div><div class="count">${n}</div></div>`;
   }).join('');
   document.getElementById('dirRows').innerHTML = dirRows;
+
+  const { data: byTipo } = await sb.from('documentos').select('tipo_prefijo,tipo_es_oficial');
+  const tallyTipo = {};
+  (byTipo||[]).forEach(r=>{ const k=r.tipo_prefijo||'Sin tipo'; tallyTipo[k]=(tallyTipo[k]||0)+1; });
+  const maxTipo = Math.max(1, ...Object.values(tallyTipo));
+  const tipoRows = Object.entries(tallyTipo).sort((a,b)=>b[1]-a[1]).map(([prefijo,n])=>{
+    const t = CAT_TIPOS.find(x=>x.codigo===prefijo);
+    const label = t ? `${prefijo} — ${esc(t.nombre)}` : `${esc(prefijo)} <span class="pill warn" style="margin-left:6px;">no oficial</span>`;
+    return `<div class="bar-row"><div class="name">${label}</div><div class="track"><div class="fill" style="width:${(n/maxTipo*100).toFixed(0)}%"></div></div><div class="count">${n}</div></div>`;
+  }).join('');
+  document.getElementById('tipoRows').innerHTML = tipoRows || '<p class="muted">Sin datos.</p>';
 }
 
 function govRow(label, n, total){ const pct = total ? Math.round((n/total)*100) : 0; return `<div class="bar-row"><div class="name">${label}</div><div class="track"><div class="fill" style="width:${pct}%"></div></div><div class="count">${n}</div></div>`; }
@@ -380,7 +415,11 @@ async function loadDocumentos(reset){
   const q = document.getElementById('fltBuscar').value.trim();
   const dir = document.getElementById('fltDireccion').value;
   
-  let query = sb.from('documentos').select('*').order('created_at', {ascending:false}).range(DOCS_PAGE*25, DOCS_PAGE*25+24);
+  const orden = document.getElementById('fltOrden').value === 'asc';
+  let query = sb.from('documentos').select('*')
+    .order('fecha_aprobacion', {ascending: orden, nullsFirst: false})
+    .order('created_at', {ascending: orden})
+    .range(DOCS_PAGE*25, DOCS_PAGE*25+24);
   if(q) query = query.or(`codigo.ilike.%${q}%,titulo.ilike.%${q}%`);
   if(dir) query = query.eq('direccion_codigo', dir);
   
@@ -416,7 +455,7 @@ window.updateFecha = async (id, fecha) => {
 
 window.delDoc = async (id) => { if(!confirm('¿Eliminar? No se puede deshacer.')) return; const {error} = await sb.from('documentos').delete().eq('id', id); if(error) alert('Error: '+error.message); else { loadDocumentos(true); loadDashboard(); } };
 
-['fltBuscar','fltDireccion'].forEach(id=>{ document.getElementById(id).addEventListener('input', ()=> loadDocumentos(true)); });
+['fltBuscar','fltDireccion','fltOrden'].forEach(id=>{ document.getElementById(id).addEventListener('input', ()=> loadDocumentos(true)); });
 document.getElementById('btnLoadMore').addEventListener('click', ()=> loadDocumentos(false));
 
 async function loadHomologacion(reset){
