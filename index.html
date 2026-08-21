@@ -202,6 +202,7 @@ let sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let currentRole = null;
 let CAT_TIPOS = [], CAT_DIRECCIONES = [], CAT_AREAS = [];
+let DOCS_CACHE = {};
 let DOCS_PAGE = 0, HOMOLOG_PAGE = 0, AUDIT_PAGE = 0;
 
 async function boot(){
@@ -431,20 +432,18 @@ async function loadDocumentos(reset){
     const dirC = CAT_DIRECCIONES.find(x=>x.codigo===d.direccion_codigo);
     const delBtn = currentRole === 'admin' ? `<button class="danger" onclick="delDoc(${d.id})">Eliminar</button>` : '';
     const fechaVal = d.fecha_aprobacion || '';
+    DOCS_CACHE[d.id] = d;
+    const dirNombre = dirC?esc(dirC.nombre):'—';
+    const areaNombre = area?esc(area.nombre):'—';
     const areaCellHtml = currentRole === 'admin'
-      ? `<select id="dirSel_${d.id}" style="min-width:150px; margin-bottom:4px;" onchange="updateDireccion(${d.id}, this.value)">
-           <option value="">— Sin dirección —</option>
-           ${CAT_DIRECCIONES.map(x=>`<option value="${x.codigo}" ${x.codigo===d.direccion_codigo?'selected':''}>${esc(x.nombre)}</option>`).join('')}
-         </select>
-         <select id="areaSel_${d.id}" style="min-width:150px;" onchange="updateArea(${d.id}, this.value)">
-           <option value="">— Sin área —</option>
-           ${CAT_AREAS.filter(a=>!d.direccion_codigo || a.direccion_codigo===d.direccion_codigo).map(a=>`<option value="${a.codigo}" ${a.codigo===d.area_codigo?'selected':''}>${esc(a.nombre)}</option>`).join('')}
-         </select>`
-      : `<span class="muted">${dirC?esc(dirC.nombre):'—'} / ${area?esc(area.nombre):'—'}</span>`;
+      ? `<span id="areaText_${d.id}">${dirNombre} / ${areaNombre}
+           <button class="ghost" style="padding:2px 7px; margin-left:6px; font-size:13px;" title="Editar dirección/área" onclick="toggleAreaEdit(${d.id})">⚙️</button>
+         </span>`
+      : `<span class="muted">${dirNombre} / ${areaNombre}</span>`;
     tbody.insertAdjacentHTML('beforeend', `<tr>
       <td class="code-cell">${esc(d.codigo||'—')}</td>
       <td>${esc(d.titulo)}</td>
-      <td>${areaCellHtml}</td>
+      <td id="areaCell_${d.id}">${areaCellHtml}</td>
       <td><input type="date" value="${fechaVal}" style="min-width:140px" onchange="updateFecha(${d.id}, this.value)"></td>
       <td class="muted">${esc(d.creado_por_email?.split('@')[0]||'—')}</td>
       <td>${delBtn}</td>
@@ -452,6 +451,21 @@ async function loadDocumentos(reset){
   });
   DOCS_PAGE++;
 }
+
+window.toggleAreaEdit = (id) => {
+  const doc = DOCS_CACHE[id];
+  if(!doc) return;
+  const cell = document.getElementById(`areaCell_${id}`);
+  cell.innerHTML = `
+    <select id="dirSel_${id}" style="min-width:150px; margin-bottom:4px;" onchange="updateDireccion(${id}, this.value)">
+      <option value="">— Sin dirección —</option>
+      ${CAT_DIRECCIONES.map(x=>`<option value="${x.codigo}" ${x.codigo===doc.direccion_codigo?'selected':''}>${esc(x.nombre)}</option>`).join('')}
+    </select>
+    <select id="areaSel_${id}" style="min-width:150px;" onchange="updateArea(${id}, this.value)">
+      <option value="">— Sin área —</option>
+      ${CAT_AREAS.filter(a=>!doc.direccion_codigo || a.direccion_codigo===doc.direccion_codigo).map(a=>`<option value="${a.codigo}" ${a.codigo===doc.area_codigo?'selected':''}>${esc(a.nombre)}</option>`).join('')}
+    </select>`;
+};
 
 window.updateDireccion = async (id, dirCode) => {
   const { error } = await sb.from('documentos').update({
@@ -486,7 +500,13 @@ window.updateFecha = async (id, fecha) => {
 
 window.delDoc = async (id) => { if(!confirm('¿Eliminar? No se puede deshacer.')) return; const {error} = await sb.from('documentos').delete().eq('id', id); if(error) alert('Error: '+error.message); else { loadDocumentos(true); loadDashboard(); } };
 
-['fltBuscar','fltDireccion','fltOrden'].forEach(id=>{ document.getElementById(id).addEventListener('input', ()=> loadDocumentos(true)); });
+function debounce(fn, ms){
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(()=> fn(...args), ms); };
+}
+const loadDocumentosDebounced = debounce(()=> loadDocumentos(true), 350);
+document.getElementById('fltBuscar').addEventListener('input', loadDocumentosDebounced);
+['fltDireccion','fltOrden'].forEach(id=>{ document.getElementById(id).addEventListener('input', ()=> loadDocumentos(true)); });
 document.getElementById('btnLoadMore').addEventListener('click', ()=> loadDocumentos(false));
 
 async function loadHomologacion(reset){
