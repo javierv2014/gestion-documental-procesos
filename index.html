@@ -185,7 +185,7 @@
       <div class="panel">
         <h2>Registro de cambios <span class="tag">últimas 50 acciones</span></h2>
         <table>
-          <thead><tr><th>Tabla</th><th>Acción</th><th>Registro</th><th>Usuario</th><th>Timestamp</th></tr></thead>
+          <thead><tr><th>Tabla</th><th>Acción</th><th>Registro</th><th>Usuario</th><th>Timestamp</th><th></th></tr></thead>
           <tbody id="tblAuditoria"></tbody>
         </table>
         <div class="load-more"><button class="ghost" id="btnLoadMoreAudit">Cargar más</button></div>
@@ -431,10 +431,20 @@ async function loadDocumentos(reset){
     const dirC = CAT_DIRECCIONES.find(x=>x.codigo===d.direccion_codigo);
     const delBtn = currentRole === 'admin' ? `<button class="danger" onclick="delDoc(${d.id})">Eliminar</button>` : '';
     const fechaVal = d.fecha_aprobacion || '';
+    const areaCellHtml = currentRole === 'admin'
+      ? `<select id="dirSel_${d.id}" style="min-width:150px; margin-bottom:4px;" onchange="updateDireccion(${d.id}, this.value)">
+           <option value="">— Sin dirección —</option>
+           ${CAT_DIRECCIONES.map(x=>`<option value="${x.codigo}" ${x.codigo===d.direccion_codigo?'selected':''}>${esc(x.nombre)}</option>`).join('')}
+         </select>
+         <select id="areaSel_${d.id}" style="min-width:150px;" onchange="updateArea(${d.id}, this.value)">
+           <option value="">— Sin área —</option>
+           ${CAT_AREAS.filter(a=>!d.direccion_codigo || a.direccion_codigo===d.direccion_codigo).map(a=>`<option value="${a.codigo}" ${a.codigo===d.area_codigo?'selected':''}>${esc(a.nombre)}</option>`).join('')}
+         </select>`
+      : `<span class="muted">${dirC?esc(dirC.nombre):'—'} / ${area?esc(area.nombre):'—'}</span>`;
     tbody.insertAdjacentHTML('beforeend', `<tr>
       <td class="code-cell">${esc(d.codigo||'—')}</td>
       <td>${esc(d.titulo)}</td>
-      <td class="muted">${dirC?esc(dirC.nombre):'—'} / ${area?esc(area.nombre):'—'}</td>
+      <td>${areaCellHtml}</td>
       <td><input type="date" value="${fechaVal}" style="min-width:140px" onchange="updateFecha(${d.id}, this.value)"></td>
       <td class="muted">${esc(d.creado_por_email?.split('@')[0]||'—')}</td>
       <td>${delBtn}</td>
@@ -442,6 +452,27 @@ async function loadDocumentos(reset){
   });
   DOCS_PAGE++;
 }
+
+window.updateDireccion = async (id, dirCode) => {
+  const { error } = await sb.from('documentos').update({
+    direccion_codigo: dirCode || null,
+    area_codigo: null,
+    modificado_por: currentUser.id, modificado_por_email: currentUser.email
+  }).eq('id', id);
+  if(error){ alert('Error: '+error.message); return; }
+  loadDocumentos(true); loadDashboard();
+};
+
+window.updateArea = async (id, areaCode) => {
+  const doc = { area_codigo: areaCode || null, modificado_por: currentUser.id, modificado_por_email: currentUser.email };
+  const { data: current } = await sb.from('documentos').select('tipo_es_oficial,codigo_duplicado').eq('id', id).single();
+  if(current && current.tipo_es_oficial && areaCode && !current.codigo_duplicado){
+    doc.requiere_homologacion = false;
+  }
+  const { error } = await sb.from('documentos').update(doc).eq('id', id);
+  if(error){ alert('Error: '+error.message); return; }
+  loadDocumentos(true); loadDashboard(); loadHomologacion(true);
+};
 
 window.updateFecha = async (id, fecha) => {
   const { error } = await sb.from('documentos').update({
@@ -477,7 +508,27 @@ async function loadHomologacion(reset){
   HOMOLOG_PAGE++;
 }
 
-window.promptHomologar = async (id, codigoLegado) => { const nuevo = prompt(`Nuevo código para "${codigoLegado}":`); if(!nuevo) return; await sb.from('homologaciones').insert({ codigo_legado: codigoLegado, codigo_nuevo: nuevo, usuario_id: currentUser.id, usuario_email: currentUser.email }); await sb.from('documentos').update({ codigo: nuevo, codigo_legado: codigoLegado, requiere_homologacion: false, modificado_por: currentUser.id, modificado_por_email: currentUser.email }).eq('id', id); loadHomologacion(true); loadDocumentos(true); loadDashboard(); };
+window.promptHomologar = async (id, codigoLegado) => {
+  const patron = /^[A-Z]{1,5}-[A-Z]{1,5}-[A-Z0-9]{1,6}-\d{2,4}$/;
+  let nuevo = prompt(`Nuevo código oficial para reemplazar "${codigoLegado}" (formato TIPO-DIR-ÁREA-###):`);
+  if(!nuevo) return;
+  nuevo = nuevo.trim().toUpperCase();
+
+  if(!patron.test(nuevo)){
+    alert(`"${nuevo}" no tiene el formato correcto. Debe ser TIPO-DIR-ÁREA-### (ej. PR-OP-BOD-001). Inténtalo de nuevo.`);
+    return promptHomologar(id, codigoLegado);
+  }
+
+  const { data: dup } = await sb.from('documentos').select('id,titulo').eq('codigo', nuevo).neq('id', id).limit(1);
+  if(dup && dup.length){
+    alert(`"${nuevo}" ya existe en otro documento ("${dup[0].titulo}"). Elige un consecutivo distinto.`);
+    return promptHomologar(id, codigoLegado);
+  }
+
+  await sb.from('homologaciones').insert({ codigo_legado: codigoLegado, codigo_nuevo: nuevo, usuario_id: currentUser.id, usuario_email: currentUser.email });
+  await sb.from('documentos').update({ codigo: nuevo, codigo_legado: codigoLegado, requiere_homologacion: false, modificado_por: currentUser.id, modificado_por_email: currentUser.email }).eq('id', id);
+  loadHomologacion(true); loadDocumentos(true); loadDashboard();
+};
 
 document.getElementById('btnLoadMoreHomolog').addEventListener('click', ()=> loadHomologacion(false));
 
@@ -488,16 +539,51 @@ async function loadAuditoria(reset){
   const tbody = document.getElementById('tblAuditoria');
   if(reset) tbody.innerHTML = '';
   (data||[]).forEach(a=>{
+    const puedeDeshacer = currentRole === 'admin' && a.tabla === 'documentos';
+    const btn = puedeDeshacer ? `<button class="ghost" onclick="undoAudit(${a.id})">Deshacer</button>` : '';
     tbody.insertAdjacentHTML('beforeend', `<tr>
       <td class="muted">${esc(a.tabla)}</td>
       <td><span class="pill ${a.accion==='DELETE'?'err':a.accion==='UPDATE'?'warn':'ok'}">${a.accion}</span></td>
       <td class="code-cell">${esc(a.registro_id||'—')}</td>
       <td class="muted">${esc(a.usuario_email?.split('@')[0]||'—')}</td>
       <td class="muted">${new Date(a.created_at).toLocaleString('es-PA')}</td>
+      <td>${btn}</td>
     </tr>`);
   });
   AUDIT_PAGE++;
 }
+
+window.undoAudit = async (auditId) => {
+  const { data: log, error: errLog } = await sb.from('audit_log').select('*').eq('id', auditId).single();
+  if(errLog || !log){ alert('No se pudo leer el registro de auditoría.'); return; }
+  if(log.tabla !== 'documentos'){ alert('Deshacer solo está disponible para cambios en Documentos por ahora.'); return; }
+
+  const cambios = log.cambios || {};
+  const before = cambios.old;
+  const after = cambios.new;
+
+  if(!confirm(`¿Deshacer esta acción (${log.accion} sobre "${log.registro_id}")? Esto quedará registrado como un nuevo cambio en Auditoría.`)) return;
+
+  let error = null;
+  if(log.accion === 'INSERT'){
+    if(!after || !after.id){ alert('No hay suficiente información para deshacer esta creación.'); return; }
+    ({ error } = await sb.from('documentos').delete().eq('id', after.id));
+  } else if(log.accion === 'DELETE'){
+    if(!before){ alert('No hay suficiente información para restaurar este documento.'); return; }
+    const restore = {...before};
+    delete restore.id;
+    ({ error } = await sb.from('documentos').insert(restore));
+  } else if(log.accion === 'UPDATE'){
+    if(!before || !before.id){ alert('No hay suficiente información para revertir esta edición.'); return; }
+    const restore = {...before};
+    delete restore.id; delete restore.created_at;
+    ({ error } = await sb.from('documentos').update(restore).eq('id', before.id));
+  }
+
+  if(error){ alert('Error al deshacer: '+error.message); return; }
+  alert('Cambio revertido correctamente.');
+  loadAuditoria(true); loadDocumentos(true); loadDashboard(); loadHomologacion(true);
+};
 
 document.getElementById('btnLoadMoreAudit').addEventListener('click', ()=> loadAuditoria(false));
 
