@@ -299,7 +299,8 @@ async function updatePreview(){
   }
   
   if(!consecutivo){
-    const { data } = await sb.from('documentos').select('codigo').ilike('codigo', `${tipo}-${dir}-${area}-%`);
+    const { data } = await sb.from('documentos').select('codigo')
+      .eq('tipo_prefijo', tipo).eq('direccion_codigo', dir).eq('area_codigo', area);
     let max = 0;
     (data||[]).forEach(r=>{ const m = r.codigo?.match(/-(\d{3})$/); if(m) max = Math.max(max, parseInt(m[1],10)); });
     consecutivo = String(max+1).padStart(3,'0');
