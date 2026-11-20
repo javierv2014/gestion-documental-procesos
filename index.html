@@ -72,7 +72,26 @@
       <input type="password" id="loginPassword" placeholder="••••••••">
     </div>
     <button id="btnLogin" class="primary">Iniciar sesión</button>
+    <button type="button" id="btnForgot" style="background:none; color:var(--text-dim); font-weight:400; margin-top:10px;">¿Olvidaste tu contraseña?</button>
     <div id="loginMsg" class="login-msg"></div>
+  </div>
+</div>
+
+<div id="setPassScreen" class="login-screen" style="display:none;">
+  <div class="login-box">
+    <div class="mark">DC</div>
+    <h1>Nueva contraseña</h1>
+    <p>Escribe tu nueva contraseña (mínimo 8 caracteres)</p>
+    <div class="field">
+      <label for="newPass1">Nueva contraseña</label>
+      <input type="password" id="newPass1">
+    </div>
+    <div class="field">
+      <label for="newPass2">Repite la contraseña</label>
+      <input type="password" id="newPass2">
+    </div>
+    <button id="btnSetPass" class="primary">Guardar contraseña</button>
+    <div id="setPassMsg" class="login-msg"></div>
   </div>
 </div>
 
@@ -222,9 +241,29 @@ function nombreDe(email){
   return NOMBRES[email.toLowerCase()] || email.split('@')[0];
 }
 async function boot(){
+  const esRecuperacion = location.hash.includes('type=recovery');
   const { data: { session } } = await sb.auth.getSession();
+  if(esRecuperacion && session){ showSetPassword(); return; }
   if(!session){ showLogin(); }
   else { currentUser = session.user; showApp(); }
+}
+
+function showSetPassword(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('setPassScreen').style.display = 'flex';
+  document.getElementById('btnSetPass').addEventListener('click', async ()=>{
+    const p1 = document.getElementById('newPass1').value;
+    const p2 = document.getElementById('newPass2').value;
+    const msg = document.getElementById('setPassMsg');
+    if(p1.length < 8){ msg.textContent = 'La contraseña debe tener al menos 8 caracteres.'; msg.className = 'login-msg err'; return; }
+    if(p1 !== p2){ msg.textContent = 'Las contraseñas no coinciden.'; msg.className = 'login-msg err'; return; }
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    if(error){ msg.textContent = 'Error: ' + error.message; msg.className = 'login-msg err'; return; }
+    await sb.auth.signOut();
+    history.replaceState(null, '', location.pathname);
+    location.reload();
+  });
 }
 
 function showLogin(){
@@ -237,6 +276,13 @@ function showLogin(){
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if(error){ setLoginMsg('Error: '+error.message, 'err'); return; }
     setTimeout(()=> location.reload(), 500);
+  });
+  document.getElementById('btnForgot').addEventListener('click', async ()=>{
+    const email = document.getElementById('loginEmail').value.trim();
+    if(!email){ setLoginMsg('Escribe tu correo arriba y vuelve a presionar.', 'err'); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    if(error){ setLoginMsg('Error: ' + error.message, 'err'); return; }
+    setLoginMsg('Te enviamos un enlace a ' + email + '. Revisa también la carpeta de spam.', 'ok');
   });
   document.getElementById('loginPassword').addEventListener('keypress', e => e.key==='Enter' && document.getElementById('btnLogin').click());
 }
