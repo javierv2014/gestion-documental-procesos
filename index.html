@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
   :root{--bg:#12151b;--panel:#1a1f28;--panel-2:#212734;--hairline:#2b3240;--text:#e9ecf1;--text-dim:#8d96a6;--text-faint:#5c6577;--accent:#c9a24a;--accent-dim:#7a6636;--ok:#45b787;--ok-bg:rgba(69,183,135,.12);--warn:#e0a934;--warn-bg:rgba(224,169,52,.12);--err:#e2564f;--err-bg:rgba(226,86,79,.12);--idle:#4a5568;--idle-bg:rgba(74,85,104,.12);--radius:10px;--font-ui:'IBM Plex Sans', system-ui, sans-serif;--font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;}
   *{box-sizing:border-box;}html,body{margin:0;padding:0;}body{background:var(--bg);color:var(--text);font-family:var(--font-ui);-webkit-font-smoothing:antialiased;min-height:100vh;}a{color:inherit;}
@@ -103,6 +104,10 @@
 
     <!-- DASHBOARD -->
     <section id="tab-dashboard" class="active">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+        <span class="muted" style="font-size:12.5px;">Reporte completo para auditoría: cantidades, estatus, vigencia y detalle de pendientes por homologar.</span>
+        <button class="primary" id="btnExport" style="width:auto; margin-top:0; padding:10px 16px;">⬇ Exportar reporte (Excel)</button>
+      </div>
       <div class="kpi-grid">
         <div class="kpi tone-idle"><div class="num" id="kpiTotal">–</div><div class="lbl">Documentos totales</div></div>
         <div class="kpi tone-ok"><div class="num" id="kpiVigentes">–</div><div class="lbl">Vigentes</div></div>
@@ -472,6 +477,7 @@ window.updateDireccion = async (id, dirCode) => {
   const { error } = await sb.from('documentos').update({
     direccion_codigo: dirCode || null,
     area_codigo: null,
+    requiere_homologacion: true,
     modificado_por: currentUser.id, modificado_por_email: currentUser.email
   }).eq('id', id);
   if(error){ alert('Error: '+error.message); return; }
@@ -480,9 +486,11 @@ window.updateDireccion = async (id, dirCode) => {
 
 window.updateArea = async (id, areaCode) => {
   const doc = { area_codigo: areaCode || null, modificado_por: currentUser.id, modificado_por_email: currentUser.email };
-  const { data: current } = await sb.from('documentos').select('tipo_es_oficial,codigo_duplicado').eq('id', id).single();
-  if(current && current.tipo_es_oficial && areaCode && !current.codigo_duplicado){
-    doc.requiere_homologacion = false;
+  // El documento queda como homologado solo si su código cumple la estructura oficial con esta Dirección/Área
+  const { data: current } = await sb.from('documentos').select('codigo,tipo_prefijo,direccion_codigo,codigo_duplicado').eq('id', id).single();
+  if(current){
+    const ev = evaluarDocumento(Object.assign({}, current, { area_codigo: areaCode || null }), {});
+    doc.requiere_homologacion = !ev.cumple;
   }
   const { error } = await sb.from('documentos').update(doc).eq('id', id);
   if(error){ alert('Error: '+error.message); return; }
@@ -620,6 +628,388 @@ function setupTabEvents(){
 }
 
 function esc(s){ return (s??'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* BEGIN REPORTE */
+const TIPOS_OFICIALES = ['PO','MA','PR','IN','FO'];
+const TIPO_EQUIV = { FOR:'FO', INS:'IN', PRO:'PR' };
+const M_SIN_CODIGO = 'Sin código asignado';
+const M_CLASIF = 'Sin Dirección/Área asignada';
+const M_ESTRUCTURA = 'Código con estructura anterior (no sigue TIPO-DIR-ÁREA-###)';
+const M_DUP = 'Código duplicado';
+
+/* Evalúa un documento contra la estructura oficial. El tipo se toma del prefijo del código vigente. */
+function evaluarDocumento(d, conteo){
+  const codigo = (d.codigo || '').trim();
+  const prefijo = (codigo ? codigo.split('-')[0] : (d.tipo_prefijo || '')).toUpperCase();
+  const oficial = TIPOS_OFICIALES.includes(prefijo);
+  const dir = d.direccion_codigo || '';
+  const area = d.area_codigo || '';
+  const duplicado = !!d.codigo_duplicado || (!!codigo && conteo[codigo.toUpperCase()] > 1);
+  const motivos = [], acciones = [];
+
+  if(!codigo){
+    motivos.push(M_SIN_CODIGO);
+    acciones.push('Asignar código con la pestaña "Generar código".');
+  }
+  if(codigo && !oficial){
+    motivos.push('Tipo "' + (prefijo || '?') + '" no oficial');
+    if(TIPO_EQUIV[prefijo]) acciones.push('Reemplazar el prefijo ' + prefijo + ' por ' + TIPO_EQUIV[prefijo] + '.');
+    else if(prefijo === 'DF') acciones.push('Fusionar el diagrama de flujo como sección del Procedimiento (PR) correspondiente.');
+    else acciones.push('Definir a qué tipo oficial corresponde (PO, MA, PR, IN, FO).');
+  }
+  if(!dir || !area){
+    motivos.push(M_CLASIF);
+    acciones.push('Asignar Dirección y Área del catálogo oficial.');
+  }
+  if(codigo && oficial && dir && area){
+    const patron = new RegExp('^' + prefijo + '-' + dir + '-' + area + '-\\d{3}$', 'i');
+    if(!patron.test(codigo)){
+      motivos.push(M_ESTRUCTURA);
+      acciones.push('Asignar código nuevo con estructura TIPO-DIR-ÁREA-### (botón Homologar).');
+    }
+  }
+  if(duplicado){
+    motivos.push(M_DUP);
+    acciones.push('Asignar un código propio: un código solo puede identificar un documento.');
+  }
+  const cumple = motivos.length === 0;
+  const tipoEq = oficial ? prefijo : (TIPO_EQUIV[prefijo] || '');
+  const sugerido = (!cumple && tipoEq && dir && area) ? (tipoEq + '-' + dir + '-' + area + '-###') : '';
+  return { prefijo, oficial, duplicado, motivos, acciones, cumple, sugerido };
+}
+
+/* Misma regla que la vista v_vigencia: 2 años; "próximo a caducar" = faltan menos de 2 meses. */
+function vigencia(d, ahora){
+  const ref = d.fecha_ultima_revision || d.fecha_aprobacion;
+  if(!ref) return 'Sin fecha';
+  const f = new Date(ref + 'T00:00:00');
+  const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+  const lim = new Date(hoy); lim.setFullYear(lim.getFullYear() - 2);
+  const lim2 = new Date(lim); lim2.setMonth(lim2.getMonth() + 2);
+  if(f < lim) return 'Caducado';
+  if(f < lim2) return 'Próximo a caducar';
+  return 'Vigente';
+}
+
+function buildWorkbook(ExcelJS, docs, cat, ctx){
+  const ahora = ctx.ahora;
+  const conteo = {};
+  docs.forEach(d => { const k = (d.codigo || '').trim().toUpperCase(); if(k) conteo[k] = (conteo[k] || 0) + 1; });
+  const nombreDir = c => (cat.direcciones.find(x => x.codigo === c) || {}).nombre;
+  const nombreArea = c => (cat.areas.find(x => x.codigo === c) || {}).nombre;
+  const SIN_DIR = 'Sin Dirección asignada', SIN_AREA = 'Sin Área asignada';
+
+  const filas = docs.map(d => {
+    const ev = evaluarDocumento(d, conteo);
+    return { d, ev, vig: vigencia(d, ahora), dir: nombreDir(d.direccion_codigo) || SIN_DIR, area: nombreArea(d.area_codigo) || SIN_AREA };
+  });
+  filas.sort((a, b) => (a.d.codigo || '~').localeCompare(b.d.codigo || '~'));
+
+  const total = filas.length;
+  const L = total + 1;                       // última fila de datos en "Detalle"
+  const rng = col => 'Detalle!' + col + '2:' + col + L;
+
+  const FONT = 'Arial';
+  const AZUL = 'FF1F3A5F', GRIS = 'FFE5E7EB', BORDE = { style:'thin', color:{ argb:'FFD1D5DB' } };
+  const BORDER = { top:BORDE, left:BORDE, bottom:BORDE, right:BORDE };
+  const solid = argb => ({ type:'pattern', pattern:'solid', fgColor:{ argb } });
+  const FILL_VIG = { 'Vigente':'FFDCFCE7', 'Próximo a caducar':'FFFEF3C7', 'Caducado':'FFFEE2E2', 'Sin fecha':'FFF3F4F6' };
+  const fechaX = s => s ? new Date(s + 'T00:00:00Z') : null;
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Control Interno · Dicarina';
+  wb.created = ahora;
+  wb.calcProperties.fullCalcOnLoad = true;
+  const wsR = wb.addWorksheet('Resumen', { views:[{ showGridLines:false }] });
+  const wsP = wb.addWorksheet('Pendientes de homologar', { views:[{ state:'frozen', ySplit:1 }] });
+  const wsD = wb.addWorksheet('Detalle', { views:[{ state:'frozen', ySplit:1 }] });
+  const wsN = wb.addWorksheet('Notas y criterios', { views:[{ showGridLines:false }] });
+
+  /* ---------------- Detalle ---------------- */
+  const colsD = [
+    ['Código',16],['Código anterior (legado)',18],['Título',58],['Tipo (prefijo)',10],['¿Tipo oficial?',10],
+    ['Dirección',26],['Área',28],['Estado',13],['Fecha de aprobación',13],['Última revisión',13],['Vigencia',17],
+    ['Responsable',24],['Carpeta de origen (intranet)',28],['¿Cumple estructura de código?',15],
+    ['Motivo(s) de homologación',62],['Código duplicado',11]
+  ];
+  wsD.columns = colsD.map(c => ({ header:c[0], width:c[1] }));
+  filas.forEach(f => {
+    const d = f.d, ev = f.ev;
+    wsD.addRow([
+      d.codigo || null, d.codigo_legado || null, d.titulo || null, ev.prefijo || null,
+      ev.prefijo ? (ev.oficial ? 'Sí' : 'No') : '—', f.dir, f.area, d.estado || null,
+      fechaX(d.fecha_aprobacion), fechaX(d.fecha_ultima_revision), f.vig, d.responsable || null,
+      d.carpeta_legacy || null, ev.cumple ? 'Sí' : 'No', ev.motivos.join('; ') || null, ev.duplicado ? 'Sí' : 'No'
+    ]);
+  });
+  wsD.eachRow((row, n) => {
+    row.eachCell({ includeEmpty:true }, (c, col) => {
+      c.font = { name:FONT, size:10, bold: n === 1, color: n === 1 ? { argb:'FFFFFFFF' } : undefined };
+      c.border = BORDER;
+      c.alignment = { vertical:'top', wrapText: (col === 3 || col === 15 || col === 13 || col === 12) || n === 1 };
+      if(n === 1) c.fill = solid(AZUL);
+      if(n > 1 && (col === 9 || col === 10)) c.numFmt = 'dd/mm/yyyy';
+      if(n > 1 && col === 11) c.fill = solid(FILL_VIG[c.value] || 'FFFFFFFF');
+      if(n > 1 && col === 14) c.fill = solid(c.value === 'Sí' ? 'FFDCFCE7' : 'FFFEE2E2');
+    });
+  });
+  wsD.getRow(1).height = 32;
+  wsD.autoFilter = { from:'A1', to:{ row:L, column:colsD.length } };
+
+  /* ---------------- Pendientes de homologar ---------------- */
+  const colsP = [
+    ['Código actual',16],['Título',56],['Tipo',8],['Dirección',26],['Área',28],['Responsable',22],
+    ['Motivo(s) por los que está pendiente',56],['Acción requerida',60],['Estructura sugerida (consecutivo por definir)',24]
+  ];
+  wsP.columns = colsP.map(c => ({ header:c[0], width:c[1] }));
+  const pend = filas.filter(f => !f.ev.cumple).sort((a, b) => a.dir.localeCompare(b.dir) || (a.d.codigo || '~').localeCompare(b.d.codigo || '~'));
+  pend.forEach(f => wsP.addRow([
+    f.d.codigo || '(sin código)', f.d.titulo || null, f.ev.prefijo || null, f.dir, f.area, f.d.responsable || null,
+    f.ev.motivos.join('; '), f.ev.acciones.join(' '), f.ev.sugerido || null
+  ]));
+  wsP.eachRow((row, n) => {
+    row.eachCell({ includeEmpty:true }, (c, col) => {
+      c.font = { name:FONT, size:10, bold: n === 1, color: n === 1 ? { argb:'FFFFFFFF' } : undefined };
+      c.border = BORDER;
+      c.alignment = { vertical:'top', wrapText: n === 1 || col === 2 || col === 7 || col === 8 };
+      if(n === 1) c.fill = solid(AZUL);
+    });
+  });
+  wsP.getRow(1).height = 32;
+  wsP.autoFilter = { from:'A1', to:{ row: Math.max(pend.length + 1, 2), column:colsP.length } };
+
+  /* ---------------- Resumen ---------------- */
+  wsR.getColumn(1).width = 62;
+  [2, 3, 4, 5].forEach(i => wsR.getColumn(i).width = 15);
+  wsR.pageSetup = { orientation:'portrait', paperSize:1, fitToPage:true, fitToWidth:1, fitToHeight:0 };
+
+  const put = (addr, value, o) => {
+    o = o || {};
+    const c = wsR.getCell(addr);
+    c.value = value;
+    c.font = Object.assign({ name:FONT, size:10 }, o.font || {});
+    if(o.fill) c.fill = solid(o.fill);
+    if(o.numFmt) c.numFmt = o.numFmt;
+    if(o.align) c.alignment = o.align;
+    if(o.border) c.border = BORDER;
+    return c;
+  };
+  let r = 1;
+  put('A1', 'Sistema de Gestión Documental — Reporte de documentos', { font:{ size:16, bold:true, color:{ argb:AZUL } } });
+  put('A2', 'Dicarina · Control Interno', { font:{ size:11, color:{ argb:'FF6B7280' } } });
+  put('A3', 'Fecha y hora de corte', { font:{ bold:true } });
+  wsR.mergeCells('B3:E3'); put('B3', ahora.toLocaleString('es-PA'), { align:{ horizontal:'left' } });
+  put('A4', 'Generado por', { font:{ bold:true } });
+  wsR.mergeCells('B4:E4'); put('B4', ctx.usuario || '', { align:{ horizontal:'left' } });
+  put('A5', 'Fuente de los datos', { font:{ bold:true } });
+  wsR.mergeCells('B5:E5'); put('B5', 'Base de datos del sistema Gestión Documental de Procesos, al momento del corte', { align:{ horizontal:'left', wrapText:true } });
+  r = 7;
+
+  const section = (title, heads) => {
+    wsR.mergeCells('A' + r + ':E' + r);
+    put('A' + r, title, { font:{ bold:true, color:{ argb:'FFFFFFFF' }, size:11 }, fill:AZUL, align:{ vertical:'middle', wrapText:true } });
+    wsR.getRow(r).height = 22;
+    r++;
+    if(heads){
+      heads.forEach((h, i) => put(String.fromCharCode(65 + i) + r, h, { font:{ bold:true }, fill:GRIS, border:true, align:{ horizontal: i ? 'center' : 'left', wrapText:true } }));
+      r++;
+    }
+  };
+  const note = text => {
+    wsR.mergeCells('A' + r + ':E' + r);
+    put('A' + r, text, { font:{ italic:true, size:9, color:{ argb:'FF6B7280' } }, align:{ wrapText:true, vertical:'top' } });
+    wsR.getRow(r).height = 26;
+    r++;
+  };
+  let totalRow = 0, pendRow = 0;
+  const pct = (cell, den) => ({ formula:'IF(' + den + '=0,0,' + cell + '/' + den + ')' });
+  /* fila con cantidad (B) y % del total (C) */
+  const fila = (label, formula, result, o) => {
+    o = o || {};
+    put('A' + r, label, { border:true, font:{ bold: !!o.bold }, align:{ wrapText:true, indent: o.indent || 0 } });
+    put('B' + r, { formula, result }, { border:true, numFmt:'#,##0', font:{ bold: !!o.bold }, align:{ horizontal:'center' } });
+    const den = o.den || ('$B$' + totalRow);
+    const denVal = o.denVal !== undefined ? o.denVal : total;
+    put('C' + r, { formula:'IF(' + den + '=0,0,B' + r + '/' + den + ')', result: denVal ? result / denVal : 0 },
+        { border:true, numFmt:'0.0%', font:{ bold: !!o.bold }, align:{ horizontal:'center' } });
+    r++;
+    return r - 1;
+  };
+
+  const nSi = filas.filter(f => f.ev.cumple).length, nNo = total - nSi;
+  const nConCodigo = filas.filter(f => f.d.codigo).length;
+  const nDF = filas.filter(f => f.ev.prefijo === 'DF').length;
+
+  section('1. Cantidad de documentos en el sistema', ['Concepto', 'Cantidad', '% del total']);
+  totalRow = r;
+  fila('Total de documentos registrados', 'COUNTA(' + rng('C') + ')', total, { bold:true, den:'$B$' + r });
+  fila('Con código asignado', 'COUNTA(' + rng('A') + ')', nConCodigo, { indent:1 });
+  fila('Sin código asignado', 'COUNTBLANK(' + rng('A') + ')', total - nConCodigo, { indent:1 });
+  fila('Total excluyendo diagramas de flujo (DF)', 'B' + totalRow + '-COUNTIF(' + rng('D') + ',"DF")', total - nDF, { bold:true });
+  note('Los diagramas de flujo (DF) se registran hoy como documentos independientes; se muestran aparte porque está previsto fusionarlos como sección de su Procedimiento (PR).');
+  r++;
+
+  section('2. Homologación a la estructura oficial de código (TIPO-DIR-ÁREA-###)', ['Concepto', 'Cantidad', '% del total']);
+  fila('Cumplen la estructura oficial (homologados)', 'COUNTIF(' + rng('N') + ',"Sí")', nSi, { bold:true });
+  pendRow = fila('Pendientes de homologar', 'COUNTIF(' + rng('N') + ',"No")', nNo, { bold:true });
+  r++;
+  ['Motivos de pendiente (un documento puede tener más de un motivo)', '', '', '', ''].slice(0, 1).forEach(t => {
+    put('A' + r, t, { font:{ bold:true }, fill:GRIS, border:true });
+    put('B' + r, 'Cantidad', { font:{ bold:true }, fill:GRIS, border:true, align:{ horizontal:'center' } });
+    put('C' + r, '% de pendientes', { font:{ bold:true }, fill:GRIS, border:true, align:{ horizontal:'center', wrapText:true } });
+    r++;
+  });
+  const motivosDef = [
+    ['Código con estructura anterior (no sigue TIPO-DIR-ÁREA-###)', 'estructura anterior'],
+    ['Tipo documental no oficial (FOR, INS, DF, PRO, etc.)', 'no oficial'],
+    ['Sin Dirección/Área asignada en el catálogo', 'sin dirección/área'],
+    ['Código duplicado (comparte código con otro documento)', 'duplicado'],
+    ['Sin código asignado', 'sin código']
+  ];
+  motivosDef.forEach(m => {
+    const n = filas.filter(f => f.ev.motivos.join('; ').toLowerCase().includes(m[1])).length;
+    fila(m[0], 'COUNTIF(' + rng('O') + ',"*' + m[1] + '*")', n, { indent:1, den:'$B$' + pendRow, denVal:nNo });
+  });
+  r++;
+
+  section('3. Vigencia (criterio: 2 años desde la última revisión registrada o, si no existe, desde la aprobación)', ['Concepto', 'Cantidad', '% del total']);
+  const vigDef = [['Vigente','Vigente'],['Próximo a caducar','Próximo a caducar (vence en menos de 2 meses)'],['Caducado','Caducado (más de 2 años sin revisión registrada)'],['Sin fecha','Sin fecha de aprobación ni de revisión registrada']];
+  const vigStart = r;
+  vigDef.forEach(v => fila(v[1], 'COUNTIF(' + rng('K') + ',"' + v[0] + '")', filas.filter(f => f.vig === v[0]).length, { indent:1 }));
+  fila('Total (verificación: debe coincidir con el total registrado)', 'SUM(B' + vigStart + ':B' + (r - 1) + ')', total, { bold:true });
+  r++;
+
+  section('4. Estado del documento', ['Concepto', 'Cantidad', '% del total']);
+  const estados = {};
+  filas.forEach(f => { const e = f.d.estado || ''; estados[e] = (estados[e] || 0) + 1; });
+  Object.keys(estados).sort().forEach(e => {
+    fila(e || '(sin estado)', e ? 'COUNTIF(' + rng('H') + ',"' + e.replace(/"/g, '""') + '")' : 'COUNTBLANK(' + rng('H') + ')', estados[e], { indent:1 });
+  });
+  r++;
+
+  section('5. Por tipo documental (según el prefijo del código vigente)', ['Tipo', 'Cantidad', 'Cumplen', 'Pendientes']);
+  const porTipo = {};
+  filas.forEach(f => { const p = f.ev.prefijo; if(p) porTipo[p] = (porTipo[p] || 0) + 1; });
+  const tiposOrden = TIPOS_OFICIALES.concat(Object.keys(porTipo).filter(p => !TIPOS_OFICIALES.includes(p)).sort((a, b) => porTipo[b] - porTipo[a]));
+  const tipoIni = r;
+  tiposOrden.forEach(p => {
+    const t = cat.tipos.find(x => x.codigo === p);
+    const etiqueta = TIPOS_OFICIALES.includes(p) ? (p + ' — ' + (t ? t.nombre : 'Tipo oficial')) : (p + ' — Tipo no oficial (código legado)');
+    const nT = filas.filter(f => f.ev.prefijo === p).length, nC = filas.filter(f => f.ev.prefijo === p && f.ev.cumple).length;
+    put('A' + r, etiqueta, { border:true, align:{ indent:1 } });
+    put('B' + r, { formula:'COUNTIF(' + rng('D') + ',"' + p + '")', result:nT }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+    put('C' + r, { formula:'COUNTIFS(' + rng('D') + ',"' + p + '",' + rng('N') + ',"Sí")', result:nC }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+    put('D' + r, { formula:'B' + r + '-C' + r, result:nT - nC }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+    r++;
+  });
+  const nSinTipo = filas.filter(f => !f.ev.prefijo).length;
+  put('A' + r, '(sin código / sin tipo)', { border:true, align:{ indent:1 } });
+  put('B' + r, { formula:'COUNTBLANK(' + rng('D') + ')', result:nSinTipo }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+  put('C' + r, { formula:'COUNTIFS(' + rng('D') + ',"",' + rng('N') + ',"Sí")', result:0 }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+  put('D' + r, { formula:'B' + r + '-C' + r, result:nSinTipo }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+  r++;
+  put('A' + r, 'Total', { font:{ bold:true }, border:true, fill:GRIS });
+  ['B', 'C', 'D'].forEach((col, i) => put(col + r, { formula:'SUM(' + col + tipoIni + ':' + col + (r - 1) + ')', result: [total, nSi, nNo][i] },
+    { font:{ bold:true }, border:true, fill:GRIS, numFmt:'#,##0', align:{ horizontal:'center' } }));
+  r += 2;
+
+  section('6. Por Dirección y avance de homologación', ['Dirección', 'Cantidad', 'Cumplen', 'Pendientes', '% avance']);
+  const porDir = {};
+  filas.forEach(f => { porDir[f.dir] = (porDir[f.dir] || 0) + 1; });
+  const dirOrden = Object.keys(porDir).sort((a, b) => (a === SIN_DIR) - (b === SIN_DIR) || porDir[b] - porDir[a]);
+  const dirIni = r;
+  dirOrden.forEach(dn => {
+    const nT = porDir[dn], nC = filas.filter(f => f.dir === dn && f.ev.cumple).length;
+    put('A' + r, dn, { border:true, align:{ indent:1 } });
+    put('B' + r, { formula:'COUNTIF(' + rng('F') + ',"' + dn.replace(/"/g, '""') + '")', result:nT }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+    put('C' + r, { formula:'COUNTIFS(' + rng('F') + ',"' + dn.replace(/"/g, '""') + '",' + rng('N') + ',"Sí")', result:nC }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+    put('D' + r, { formula:'B' + r + '-C' + r, result:nT - nC }, { border:true, numFmt:'#,##0', align:{ horizontal:'center' } });
+    put('E' + r, { formula:'IF(B' + r + '=0,0,C' + r + '/B' + r + ')', result: nT ? nC / nT : 0 }, { border:true, numFmt:'0.0%', align:{ horizontal:'center' } });
+    r++;
+  });
+  put('A' + r, 'Total', { font:{ bold:true }, border:true, fill:GRIS });
+  ['B', 'C', 'D'].forEach((col, i) => put(col + r, { formula:'SUM(' + col + dirIni + ':' + col + (r - 1) + ')', result: [total, nSi, nNo][i] },
+    { font:{ bold:true }, border:true, fill:GRIS, numFmt:'#,##0', align:{ horizontal:'center' } }));
+  put('E' + r, { formula:'IF(B' + r + '=0,0,C' + r + '/B' + r + ')', result: total ? nSi / total : 0 }, { font:{ bold:true }, border:true, fill:GRIS, numFmt:'0.0%', align:{ horizontal:'center' } });
+  r += 2;
+  note('Definiciones, criterios y limitaciones de estas cifras: ver la hoja "Notas y criterios". El listado documento por documento está en "Detalle"; los pendientes, con su motivo y acción, en "Pendientes de homologar".');
+
+  /* ---------------- Notas y criterios ---------------- */
+  wsN.getColumn(1).width = 130;
+  const sinFecha = filas.filter(f => f.vig === 'Sin fecha').length;
+  const sinRevision = docs.filter(d => !d.fecha_ultima_revision).length;
+  const nCaducados = filas.filter(f => f.vig === 'Caducado').length;
+  const flagTrue = docs.filter(d => d.requiere_homologacion).length;
+  const flagPeroCumple = filas.filter(f => f.d.requiere_homologacion && f.ev.cumple).length;
+  const homologadoPeroNo = filas.filter(f => !f.d.requiere_homologacion && !f.ev.cumple).length;
+  const dups = Object.keys(conteo).filter(k => conteo[k] > 1);
+  const dupTxt = dups.length ? dups.slice(0, 15).map(k => k + ' (' + conteo[k] + ' documentos)').join('; ') + (dups.length > 15 ? '; …' : '') : 'Ninguno detectado.';
+  const notas = [
+    ['h', 'Alcance'],
+    ['p', 'Este reporte refleja todos los documentos registrados en el sistema Gestión Documental de Procesos al momento del corte indicado en la hoja "Resumen". Cada registro corresponde a un archivo publicado en la intranet. Los diagramas de flujo (DF) se cuentan como documentos independientes mientras no se fusionen con su Procedimiento.'],
+    ['h', 'Estructura oficial de código'],
+    ['p', 'TIPO-DIRECCIÓN-ÁREA-CONSECUTIVO, por ejemplo PR-FA-TES-001. Tipos oficiales: PO (Política), MA (Manual), PR (Procedimiento), IN (Instructivo), FO (Formato). Dirección y Área provienen del catálogo oficial de Dicarina. El tipo de cada documento se toma del prefijo de su código vigente.'],
+    ['h', 'Qué significa "pendiente de homologar"'],
+    ['p', 'Un documento está pendiente cuando su código todavía no cumple la estructura oficial. Se conserva el código histórico (para no romper referencias existentes) hasta que se le asigne el nuevo. Motivos posibles: (1) el código usa la estructura anterior, por ejemplo PO-AF-FIN-003 en lugar de PO-FA-TES-001; (2) el prefijo de tipo no es oficial (FOR, INS, PRO, DF, etc.); (3) el documento no tiene Dirección o Área asignada en el catálogo; (4) el código está duplicado; (5) no tiene código. La hoja "Pendientes de homologar" detalla el motivo y la acción de cada uno.'],
+    ['p', 'Cifras al corte: ' + nSi + ' documentos cumplen la estructura oficial y ' + nNo + ' están pendientes (' + (total ? (nNo / total * 100).toFixed(1) : 0) + '% del total).'],
+    ['h', 'Vigencia'],
+    ['p', 'Un documento se considera Caducado cuando han pasado más de 2 años desde su última revisión registrada o, si no hay revisión registrada, desde su fecha de aprobación. Se marca Próximo a caducar cuando faltan menos de 2 meses para cumplir ese plazo. Sin fecha: no hay ninguna fecha registrada.'],
+    ['h', 'Limitaciones que conviene tener presentes'],
+    ['p', '• Fecha de revisión: ' + sinRevision + ' de ' + total + ' documentos no tienen fecha de última revisión registrada en el sistema, por lo que su vigencia se mide desde la aprobación. "Caducado" (' + nCaducados + ' documentos) significa que no hay revisión registrada en el sistema, no necesariamente que nunca se haya revisado.'],
+    ['p', '• Sin fecha: ' + sinFecha + ' documentos no tienen ninguna fecha registrada y no pueden clasificarse por vigencia.'],
+    ['p', '• Códigos duplicados detectados al corte: ' + dupTxt],
+    ['h', 'Conciliación con el indicador del sistema'],
+    ['p', 'El campo "Requiere homologación" del sistema marca ' + flagTrue + ' documentos. Este reporte no usa ese campo: evalúa cada código contra la regla de estructura. Diferencias al corte: ' + flagPeroCumple + ' documentos marcados como pendientes que ya cumplen la estructura, y ' + homologadoPeroNo + ' marcados como homologados que todavía no la cumplen.']
+  ];
+  let nr = 1;
+  const t = wsN.getCell('A' + nr); t.value = 'Notas y criterios del reporte'; t.font = { name:FONT, size:14, bold:true, color:{ argb:AZUL } }; nr += 2;
+  notas.forEach(n => {
+    const c = wsN.getCell('A' + nr);
+    c.value = n[1];
+    c.font = n[0] === 'h' ? { name:FONT, size:11, bold:true, color:{ argb:AZUL } } : { name:FONT, size:10 };
+    c.alignment = { wrapText:true, vertical:'top' };
+    nr += (n[0] === 'h') ? 1 : 2;
+  });
+
+  return wb;
+}
+/* END REPORTE */
+
+async function fetchAllDocs(){
+  let all = [], from = 0; const step = 1000;
+  while(true){
+    const { data, error } = await sb.from('documentos').select('*').order('id').range(from, from + step - 1);
+    if(error) throw error;
+    all = all.concat(data || []);
+    if(!data || data.length < step) break;
+    from += step;
+  }
+  return all;
+}
+
+async function exportarReporte(){
+  if(typeof ExcelJS === 'undefined'){ alert('No se cargó la librería de Excel. Revisa tu conexión y recarga la página.'); return; }
+  const btn = document.getElementById('btnExport');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Generando reporte…';
+  try {
+    const docs = await fetchAllDocs();
+    const ahora = new Date();
+    const wb = buildWorkbook(ExcelJS, docs, { tipos:CAT_TIPOS, direcciones:CAT_DIRECCIONES, areas:CAT_AREAS }, { ahora, usuario: currentUser.email });
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Reporte_Gestion_Documental_' + ahora.toLocaleDateString('en-CA') + '.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch(e){
+    alert('No se pudo generar el reporte: ' + (e.message || e));
+  } finally {
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+}
+document.getElementById('btnExport').addEventListener('click', exportarReporte);
 
 boot();
 </script>
